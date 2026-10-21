@@ -1,8 +1,8 @@
-import { redirect } from "next/navigation";
+import SetupScreen from "./components/report/setup-screen";
 
-// Rendered behind the client-side sign-in gate (AppShell), so there is nothing to pre-validate.
+// The home page is the report setup. Rendered behind the client-side sign-in gate (AppShell), so there is nothing to pre-validate.
 export const instant = false;
 
 export default function Home() {
-  redirect("/setup");
+  return <SetupScreen />;
 }

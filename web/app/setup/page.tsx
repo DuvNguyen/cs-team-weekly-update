@@ -1,8 +1,8 @@
-import SetupScreen from "../components/report/setup-screen";
+import { redirect } from "next/navigation";
 
-// Rendered behind the client-side sign-in gate (AppShell), so there is nothing to pre-validate.
+// Setup moved to the home page; this keeps old bookmarks working.
 export const instant = false;
 
 export default function SetupPage() {
-  return <SetupScreen />;
+  redirect("/");
 }

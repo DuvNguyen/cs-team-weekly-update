@@ -69,7 +69,7 @@ function AccountMenu({ me, onVoice, onAm, onSettings, onSignOut }: { me: Me; onV
 
 export function Header({ me, signedOut, job, onSignOut, onSettings }: { me: Me | null; signedOut: boolean; job: Job | null; onSignOut: () => void; onSettings: () => void }) {
   const path = usePathname();
-  const step = path.startsWith("/setup") ? 1 : path.startsWith("/report") ? (job && isWorking(job) ? 2 : 3) : 0;
+  const step = path === "/" || path.startsWith("/setup") ? 1 : path.startsWith("/report") ? (job && isWorking(job) ? 2 : 3) : 0;
   const onVoice = path.startsWith("/voice");
   const onAm = path.startsWith("/am-report");
 

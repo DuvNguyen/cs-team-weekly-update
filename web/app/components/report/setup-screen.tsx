@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useApp } from "../shell/app-shell";
 import { Setup } from "./setup";
 
-/* /setup */
+/* / (the home page) */
 export default function SetupScreen() {
   const { config, job, setJob } = useApp();
   const router = useRouter();

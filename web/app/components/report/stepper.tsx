@@ -1,10 +1,10 @@
 import { Check } from "lucide-react";
 import Link from "next/link";
 
-/* Setup is /setup; Generate and Review are the same page (/report) at different moments. */
+/* Setup is / (the home page); Generate and Review are the same page (/report) at different moments. */
 export function Stepper({ step, hasReport }: { step: number; hasReport: boolean }) {
   const steps = [
-    { name: "Setup", href: "/setup" },
+    { name: "Setup", href: "/" },
     { name: "Generate", href: "/report" },
     { name: "Review", href: "/report" },
   ];

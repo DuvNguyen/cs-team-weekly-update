@@ -15,7 +15,7 @@ export default function ReportScreen() {
       <section className="card mx-auto max-w-lg space-y-4 p-10 text-center">
         <h2 className="text-2xl">No report yet</h2>
         <p className="text-grey-600">Pick the period and clients first, then generate the previews.</p>
-        <Link href="/setup" className="btn btn-primary !text-white !no-underline">Go to setup</Link>
+        <Link href="/" className="btn btn-primary !text-white !no-underline">Go to setup</Link>
       </section>
     );
 
@@ -24,10 +24,10 @@ export default function ReportScreen() {
       key={job.id}
       job={job}
       onJob={setJob}
-      onBack={() => router.push("/setup")}
+      onBack={() => router.push("/")}
       onReset={() => {
         setJob(null);
-        router.push("/setup");
+        router.push("/");
       }}
     />
   );
