@@ -114,3 +114,12 @@ def test_person_ids_are_strings_even_when_postgres_returns_uuids():
     uid = uuid.uuid4()
     t = task(pic_id=uid, pic_estimation=4, pic_start_date="2026-10-19", pic_due_date="2026-10-19")
     assert str(uid) in w.daily_hours([t], MON)
+
+
+def test_one_person_in_two_roles_uses_the_grids_tracked_time_lookup():
+    # SD Friday's getTaskTimeLeft picks the tracked time by role in the order PIC, peer reviewer, QA, publisher.
+    # When the same person holds PIC and peer review, both of their rows subtract the PIC's tracked time.
+    t = task(status="In Progress", pic_id="X", peer_reviewer_id="X", pic_estimation=10, pic_time_tracked=4,
+             peer_review_time_tracked=0, pic_start_date="2026-10-19", pic_due_date="2026-10-19",
+             peer_review_start_date="2026-10-19", peer_review_due_date="2026-10-19")
+    assert week("X", [t])[MON] == 6.0 + 0.0          # PIC: 10-4; peer: max(0, 2-4) = 0

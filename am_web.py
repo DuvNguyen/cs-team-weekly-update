@@ -6,6 +6,7 @@ import glob
 import logging
 import os
 import re
+import time
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
@@ -89,6 +90,7 @@ def generate(body: GenerateIn):
     os.makedirs(folder, exist_ok=True)
     for stale in glob.glob(os.path.join(folder, "*.png")):
         os.remove(stale)
+    version = time.time_ns()                  # new picture URLs on every run, so the browser never shows a stale PNG
     weeks = {"this": monday, "next": monday + dt.timedelta(days=7)}
     hours = {k: workload.daily_hours(tasks, d) for k, d in weeks.items()}
     names = {"dev_pictures": [], "seo_pictures": []}
@@ -103,7 +105,7 @@ def generate(body: GenerateIn):
                 workload_pic.render_row(person["name"], person["expected_hours"], days, os.path.join(folder, fname), caption=label)
                 names[key].append(fname)
                 pictures.append({"section": section, "person": person["name"], "week": which, "name": fname,
-                                 "url": f"/api/am-report/pictures/{monday.isoformat()}/{fname}"})
+                                 "url": f"/api/am-report/pictures/{monday.isoformat()}/{fname}?v={version}"})
             if not hours["next"].get(person["id"]):
                 idle.append(person["name"])
     last_week, this_week = am_bullets.client_bullets(tasks, projects, monday)
@@ -123,7 +125,7 @@ def get_picture(week: str, name: str):
     path = os.path.join(_folder(monday), name)
     if monday.isoformat() != week or not NAME_RE.match(name) or not os.path.isfile(path):
         raise HTTPException(404, "Unknown picture")
-    return FileResponse(path, media_type="image/png")
+    return FileResponse(path, media_type="image/png", headers={"Cache-Control": "no-store"})
 
 
 @router.post("/export")

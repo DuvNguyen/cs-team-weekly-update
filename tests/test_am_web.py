@@ -147,3 +147,11 @@ def test_overlong_or_unknown_answers_are_rejected(client):
     assert c.post("/api/am-report/export", json={"week_start": "2026-10-19", "data": big}).status_code == 400
     odd = {"answers": {"not_a_prompt": "x"}}
     assert c.post("/api/am-report/export", json={"week_start": "2026-10-19", "data": odd}).status_code == 400
+
+
+def test_picture_urls_change_on_every_generate_and_are_not_cached(client):
+    c, _ = client
+    first = gen(c).json()["pictures"][0]["url"]
+    second = gen(c).json()["pictures"][0]["url"]
+    assert "?v=" in first and first != second               # the browser must refetch after "Generate again"
+    assert c.get(first).headers["cache-control"] == "no-store"

@@ -18,7 +18,8 @@ PICTURE_WIDTH = Cm(15)
 
 
 def _clean(text) -> str:
-    return re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", str(text or ""))   # control characters are illegal in .docx XML
+    # Keep only characters XML 1.0 allows (no control codes, lone surrogates, U+FFFE/U+FFFF): others make .docx saving fail.
+    return re.sub("[^\x09\x0a\x0d\x20-\ud7ff\ue000-\ufffd\U00010000-\U0010ffff]", "", str(text or ""))
 
 
 def _shade(el_pr, fill: str) -> None:

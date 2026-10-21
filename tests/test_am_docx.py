@@ -117,6 +117,14 @@ def test_odd_and_long_text_is_safe(tmp_path, full):
     assert "x" * 500 in all_text(d) and "\x00" not in all_text(d)
 
 
+@pytest.mark.parametrize("bad", ["\ud800", "\ufffe", "\uffff", "ok\ud800\udc00x"])
+def test_characters_that_are_not_valid_xml_are_dropped_not_fatal(tmp_path, full, bad):
+    full["this_week"] = [f"a{bad}b"]
+    full["answers"] = {"scope_creep": f"x{bad}y"}
+    d, _ = build(tmp_path, full)                         # must not raise
+    assert "ab" in paragraphs_text(d) or "ok" in "".join(paragraphs_text(d))
+
+
 def test_typed_answer_is_written_and_is_not_blank(tmp_path):
     data = {"answers": {"scope_creep": "CRCC banner is out of scope.\nPIC to confirm.", "blockers": "None"}}
     d, blanks = build(tmp_path, data)

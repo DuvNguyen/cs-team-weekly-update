@@ -38,21 +38,28 @@ def _instances(t: dict):
     peer, qa, pub = _active(status, PEER_STATUSES), _active(status, QA_STATUSES), _active(status, PUBLISH_STATUSES)
     num = lambda k: float(t.get(k) or 0)                 # Postgres numerics arrive as Decimal
     est = num("pic_estimation") or num("estimations") or 7
-    tracked = num
+    holders = [("pic", t.get("pic_id")), ("peer_review", t.get("peer_reviewer_id")), ("qa_qc", t.get("qa_qc_id")), ("publish", t.get("publisher_id"))]
+
+    def tracked(person) -> float:
+        # Like getTaskTimeLeft in SD Friday's chart: the tracked time is that of the FIRST role the person holds
+        # (PIC, then peer reviewer, QA, publisher), so someone in two roles has the PIC's tracked time taken off both rows.
+        phase = next(ph for ph, pid in holders if pid and str(pid) == str(person))
+        return num(f"{phase}_time_tracked")
+
     rows = []
     if t.get("pic_id") and not (peer or qa or pub):
-        rows.append((t["pic_id"], "pic", est, tracked("pic_time_tracked")))
+        rows.append((t["pic_id"], "pic", est))
     if t.get("peer_reviewer_id") and not (qa or pub):
-        rows.append((t["peer_reviewer_id"], "peer_review", num("peer_review_estimation") or est * 0.2, tracked("peer_review_time_tracked")))
+        rows.append((t["peer_reviewer_id"], "peer_review", num("peer_review_estimation") or est * 0.2))
     if t.get("qa_qc_id") and not pub:
-        rows.append((t["qa_qc_id"], "qa_qc", num("qa_qc_estimation") or est * 0.2, tracked("qa_qc_time_tracked")))
+        rows.append((t["qa_qc_id"], "qa_qc", num("qa_qc_estimation") or est * 0.2))
     if t.get("publisher_id"):
-        rows.append((t["publisher_id"], "publish", num("publish_estimation") or min(est * 0.1, 0.25), tracked("publish_time_tracked")))
-    for person, phase, estimate, done in rows:
+        rows.append((t["publisher_id"], "publish", num("publish_estimation") or min(est * 0.1, 0.25)))
+    for person, phase, estimate in rows:
         start, due = day_of(t.get(f"{phase}_start_date")), day_of(t.get(f"{phase}_due_date"))
         start, end = start or due, due or start
         if start and end:
-            yield str(person), start, end, max(0, estimate - done)
+            yield str(person), start, end, max(0, estimate - tracked(person))
 
 
 def daily_hours(tasks: list[dict], week_start: dt.date) -> dict[str, dict[dt.date, float]]:
