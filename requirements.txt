@@ -8,3 +8,4 @@ python-dotenv==1.2.4
 fastapi==0.156.4
 uvicorn==0.54.0
 httpx2
+psycopg[binary]
