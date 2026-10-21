@@ -119,6 +119,30 @@ def default_period() -> dict:
     return {"start": start.isoformat(), "end": end.isoformat()}
 
 
+_DATE_HEADER = re.compile(r"^\s*\d{1,2}/\d{1,2}\s*[-–]\s*\d{1,2}/\d{1,2}\s*:?\s*$")                  # "12/10 - 16/10"
+_NO_WORK = re.compile(r"^\s*(no\s+tasks?|none|n/?a|nothing|tbd|-+|(haven'?t|not)\s+signed(\s+yet)?)\s*\.?\s*$", re.I)
+
+
+def clean_notes(text: str) -> str:
+    """The sheet cell holds one section per week under a date header. Drop sections with no real work
+    ("No task", blank lines, "Haven't signed yet") so Gemini is never handed a placeholder as if it were work."""
+    sections, head, body = [], None, []
+
+    def flush():
+        lines = [ln.rstrip() for ln in body if ln.strip() and not _NO_WORK.match(ln)]
+        if lines:
+            sections.append("\n".join(([head] if head else []) + lines))
+
+    for line in (text or "").splitlines():
+        if _DATE_HEADER.match(line):
+            flush()
+            head, body = line.strip(), []
+        else:
+            body.append(line)
+    flush()
+    return "\n\n".join(sections)
+
+
 def _periods(start: datetime.date, end: datetime.date):
     days = (end - start).days + 1
     pend = start - datetime.timedelta(days=1)
@@ -223,6 +247,7 @@ def generate_client(job: dict, c: dict, config: dict, svc) -> None:
         key = cfg.get("sheet_key", c["name"])
         this_week, next_week = updates.match(job["_rows"], key)
         this_week, next_week = cfg.get("this_week", this_week), cfg.get("next_week", next_week)
+        this_week, next_week = clean_notes(this_week), clean_notes(next_week)
         if DEMO:
             seed = sum(map(ord, c["name"]))
             series, prev = _demo_series(seed, start, end), _demo_series(seed + 1, pstart, pend)
