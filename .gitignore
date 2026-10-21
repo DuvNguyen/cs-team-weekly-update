@@ -9,3 +9,7 @@ web/node_modules/
 web/.next/
 !.env.example
 data/
+
+# Launcher state
+.env.os_cache
+.run/
