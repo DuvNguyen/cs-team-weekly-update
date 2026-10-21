@@ -1,0 +1,44 @@
+/* Saigon Digital — Typography tokens */
+:root {
+  /* Families */
+  --font-display: 'Space Grotesk', 'Be Vietnam Pro', system-ui, sans-serif; /* SVN-Shape sub */
+  --font-body: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;      /* SVN-Mona Sans sub */
+  --font-mono: 'Space Grotesk', ui-monospace, 'SFMono-Regular', monospace;
+
+  /* Weights */
+  --fw-light: 300;      /* @kind font */
+  --fw-regular: 400;    /* @kind font */
+  --fw-medium: 500;     /* @kind font */
+  --fw-semibold: 600;   /* @kind font */
+  --fw-bold: 700;       /* @kind font */
+  --fw-extrabold: 800;  /* @kind font */
+
+  /* Type scale (rem, 16px base) */
+  --fs-display-xl: 4.5rem;   /* 72px hero */
+  --fs-display-lg: 3.5rem;   /* 56px */
+  --fs-h1: 2.75rem;          /* 44px */
+  --fs-h2: 2rem;             /* 32px */
+  --fs-h3: 1.5rem;           /* 24px */
+  --fs-h4: 1.25rem;          /* 20px */
+  --fs-lead: 1.25rem;        /* 20px intro paragraphs */
+  --fs-body: 1rem;           /* 16px */
+  --fs-sm: 0.875rem;         /* 14px */
+  --fs-xs: 0.75rem;          /* 12px labels */
+
+  /* Line heights */
+  --lh-tight: 1.05;     /* @kind font */
+  --lh-heading: 1.15;   /* @kind font */
+  --lh-snug: 1.35;      /* @kind font */
+  --lh-body: 1.6;       /* @kind font */
+
+  /* Letter spacing */
+  --ls-tight: -0.03em;  /* @kind font */
+  --ls-heading: -0.02em;/* @kind font */
+  --ls-normal: 0;       /* @kind font */
+  --ls-wide: 0.02em;    /* @kind font */
+  --ls-caps: 0.08em;    /* @kind font */
+
+  /* Semantic aliases */
+  --text-display-font: var(--font-display);
+  --text-body-font: var(--font-body);
+}

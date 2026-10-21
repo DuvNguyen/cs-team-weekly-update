@@ -1,0 +1,247 @@
+@import "tailwindcss";
+
+/* Saigon Digital design system tokens (copied from sd-dashboard/design-system/tokens). */
+@import "./styles/colors.css";
+@import "./styles/spacing.css";
+@import "./styles/typography.css";
+@import "./styles/base.css";
+
+/* Fonts come from next/font (see layout.tsx) instead of the Google @import in the DS. */
+:root {
+  --font-display: var(--font-space-grotesk), "Be Vietnam Pro", system-ui, sans-serif;
+  --font-body: var(--font-be-vietnam), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-space-grotesk), ui-monospace, "SFMono-Regular", monospace;
+
+  /* Derived tints the DS components use inline (Badge sky, Input error). */
+  --sd-sky-050: #e3f8fc;
+  --sd-sky-700: #0c7c93;
+  --sd-danger: #d64545;
+  --sd-danger-050: #fbeaea;
+  --sd-blue-100: #dee7fd;
+
+  color-scheme: light;
+}
+
+/* Tailwind colour names mapped onto the tokens above. */
+@theme inline {
+  --color-brand: var(--sd-blue);
+  --color-brand-600: var(--sd-blue-600);
+  --color-brand-100: var(--sd-blue-100);
+  --color-brand-050: var(--sd-blue-050);
+  --color-indigo: var(--sd-indigo);
+  --color-ink: var(--sd-ink);
+  --color-navy: var(--sd-navy);
+  --color-sky: var(--sd-sky);
+  --color-sky-050: var(--sd-sky-050);
+  --color-sky-700: var(--sd-sky-700);
+  --color-sun: var(--sd-yellow);
+  --color-grey-50: var(--sd-grey-50);
+  --color-grey-100: var(--sd-grey-100);
+  --color-grey-200: var(--sd-grey-200);
+  --color-grey-400: var(--sd-grey-400);
+  --color-grey-600: var(--sd-grey-600);
+  --color-danger: var(--sd-danger);
+  --color-danger-050: var(--sd-danger-050);
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
+}
+
+body {
+  min-height: 100dvh;
+  background: var(--surface-muted);
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* ---------- custom scrollbar: slim, rounded, brand blue on hover ---------- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sd-grey-400) transparent;
+}
+@supports selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: auto;
+    scrollbar-color: auto;
+  }
+  *::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: var(--sd-grey-200);
+    border: 3px solid transparent;
+    border-radius: var(--radius-pill);
+    background-clip: content-box;
+    transition: background var(--dur-fast) var(--ease-standard);
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: var(--sd-blue);
+    background-clip: content-box;
+  }
+  *::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+}
+
+/* ---------- components ---------- */
+@layer components {
+  .card {
+    background: var(--surface-card);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: var(--fs-sm);
+    font-weight: var(--fw-semibold);
+    color: var(--text-heading);
+  }
+
+  .overline {
+    font-size: var(--fs-xs);
+    font-weight: var(--fw-semibold);
+    letter-spacing: var(--ls-caps);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .field {
+    width: 100%;
+    box-sizing: border-box;
+    background: #fff;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    padding: 11px 14px;
+    font: inherit;
+    color: var(--text-body);
+    transition:
+      border-color var(--dur-fast) var(--ease-standard),
+      box-shadow var(--dur-fast) var(--ease-standard);
+  }
+  .field:hover {
+    border-color: var(--border-strong);
+  }
+  .field:focus,
+  .field:focus-within {
+    outline: none;
+    border-color: var(--sd-blue);
+    box-shadow: 0 0 0 3px var(--focus-ring);
+  }
+  .field::placeholder {
+    color: var(--sd-grey-400);
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 11px 22px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-pill);
+    font-family: var(--font-body);
+    font-size: var(--fs-body);
+    font-weight: var(--fw-semibold);
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      background var(--dur-fast) var(--ease-standard),
+      transform var(--dur-fast) var(--ease-standard),
+      box-shadow var(--dur-fast) var(--ease-standard);
+  }
+  .btn:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+  .btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .btn-lg {
+    padding: 15px 30px;
+    font-size: 1.0625rem;
+  }
+  .btn-primary {
+    background: var(--sd-blue);
+    border-color: var(--sd-blue);
+    color: #fff;
+    box-shadow: var(--shadow-brand);
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: var(--sd-blue-600);
+    border-color: var(--sd-blue-600);
+  }
+  .btn-outline {
+    background: transparent;
+    border-color: var(--sd-blue);
+    color: var(--sd-blue);
+  }
+  .btn-outline:hover:not(:disabled) {
+    background: var(--sd-blue-050);
+  }
+  .btn-link {
+    color: var(--text-link);
+    font-weight: var(--fw-semibold);
+    cursor: pointer;
+    transition: color var(--dur-fast) var(--ease-standard);
+  }
+  .btn-link:hover {
+    color: var(--text-link-hover);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  /* entry: soft fade + gentle lift, staggered by --i */
+  .rise {
+    animation: rise var(--dur-slow) var(--ease-out) both;
+    animation-delay: calc(var(--i, 0) * 60ms);
+  }
+
+  /* skeleton shimmer, transform only */
+  .skeleton {
+    position: relative;
+    overflow: hidden;
+    background: var(--sd-grey-100);
+  }
+  .skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.65);
+    transform: translateX(-100%);
+    animation: shimmer 1.4s var(--ease-standard) infinite;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise,
+  .skeleton::after {
+    animation: none;
+  }
+}

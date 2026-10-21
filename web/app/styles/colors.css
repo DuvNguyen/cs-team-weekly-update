@@ -1,0 +1,60 @@
+/* Saigon Digital — Colour tokens
+   Source: SD Brand Guidelines v2023, section 04 Brand Colours */
+:root {
+  /* ---- Base palette ---- */
+  /* Primary */
+  --sd-blue: #3165F5;        /* Core Blue — primary brand colour */
+  --sd-indigo: #1E0F48;      /* Core Indigo */
+  --sd-ink: #232323;         /* Black Text */
+  --sd-white: #FFFFFF;
+
+  /* Secondary */
+  --sd-sky: #80DFF2;         /* Light Blue */
+  --sd-yellow: #FFC852;      /* Yellow */
+  --sd-navy: #061528;        /* Dark Background */
+
+  /* Neutrals */
+  --sd-grey-50: #F5F5F5;     /* Light grey surface */
+  --sd-grey-400: #A3A6B1;    /* Mid grey */
+
+  /* Supporting tints (derived from the palette, used in UI states) */
+  --sd-blue-tint: #C1D1FC;   /* Gradient 2 light stop */
+  --sd-blue-050: #EBF0FE;    /* Faint blue wash */
+  --sd-blue-600: #2450D8;    /* Blue pressed/hover */
+  --sd-blue-700: #1B3EAE;    /* Blue deep */
+  --sd-grey-100: #ECEDF0;
+  --sd-grey-200: #DFE1E6;
+  --sd-grey-600: #6B6E78;
+
+  /* ---- Gradients ---- */
+  --sd-gradient-1: linear-gradient(135deg, #1E0F48 0%, #F5F5F5 100%); /* @kind color */
+  --sd-gradient-2: linear-gradient(135deg, #3165F5 0%, #C1D1FC 100%); /* @kind color */
+  --sd-gradient-3: linear-gradient(135deg, #3165F5 0%, #80DFF2 100%); /* @kind color */
+
+  /* ---- Semantic aliases ---- */
+  --color-brand: var(--sd-blue);
+  --color-brand-strong: var(--sd-indigo);
+  --color-accent-sky: var(--sd-sky);
+  --color-accent-yellow: var(--sd-yellow);
+
+  --surface-page: var(--sd-white);
+  --surface-muted: var(--sd-grey-50);
+  --surface-card: var(--sd-white);
+  --surface-inverse: var(--sd-navy);
+  --surface-brand: var(--sd-blue);
+  --surface-brand-soft: var(--sd-blue-050);
+
+  --text-heading: var(--sd-indigo);
+  --text-body: var(--sd-ink);
+  --text-muted: var(--sd-grey-600);
+  --text-on-brand: var(--sd-white);
+  --text-on-inverse: var(--sd-white);
+  --text-link: var(--sd-blue);
+  --text-link-hover: var(--sd-blue-600);
+
+  --border-subtle: var(--sd-grey-200);
+  --border-strong: var(--sd-grey-400);
+  --border-brand: var(--sd-blue);
+
+  --focus-ring: rgba(49, 101, 245, 0.35);
+}
