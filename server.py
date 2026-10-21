@@ -3,7 +3,7 @@ import threading
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse, Response
 from pydantic import BaseModel
-import auth_web, pipeline, voice_store
+import auth_web, pipeline, settings_web, voice_store
 from auth_web import require_user
 
 app = FastAPI(title="Weekly update tool")
@@ -203,4 +203,5 @@ def export(job_id: str, user: dict = Depends(require_user)):
 
 
 app.include_router(auth_web.router)
+app.include_router(settings_web.router)
 app.include_router(api)

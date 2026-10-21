@@ -1,14 +1,60 @@
 "use client";
 
-import { LogOut, MessageSquareText } from "lucide-react";
+import { LogOut, MessageSquareText, Settings } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import type { Job, Me } from "../../lib/api";
 import { isWorking } from "../../lib/job";
 import { Stepper } from "../report/stepper";
 
 /* One line: wordmark on the left; steps, Voice rules and the account on the right. */
-export function Header({ me, signedOut, job, onSignOut }: { me: Me | null; signedOut: boolean; job: Job | null; onSignOut: () => void }) {
+/* Avatar button with a dropdown: who is signed in, Settings, Sign out. */
+function AccountMenu({ me, onSettings, onSignOut }: { me: Me; onSettings: () => void; onSignOut: () => void }) {
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: MouseEvent) => !box.current?.contains(e.target as Node) && setOpen(false);
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("mousedown", away);
+    document.addEventListener("keydown", esc);
+    return () => {
+      document.removeEventListener("mousedown", away);
+      document.removeEventListener("keydown", esc);
+    };
+  }, [open]);
+
+  const item = "flex w-full items-center gap-2 rounded-[var(--radius-md)] px-3 py-2 text-left text-sm font-semibold text-ink hover:bg-grey-100";
+  return (
+    <div ref={box} className="relative">
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open} aria-label="Account menu" className="flex size-9 items-center justify-center overflow-hidden rounded-full border border-white/25 bg-white/10 text-sm font-semibold text-white hover:bg-white/20">
+        {me.picture ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={me.picture} alt="" referrerPolicy="no-referrer" className="size-full object-cover" />
+        ) : (
+          (me.name || me.email).charAt(0).toUpperCase()
+        )}
+      </button>
+      {open && (
+        <div role="menu" className="absolute right-0 top-full z-20 mt-2 w-64 rounded-[var(--radius-lg)] bg-white p-2 shadow-lg">
+          <p className="truncate px-3 py-2 text-sm text-grey-600">{me.email}</p>
+          <button role="menuitem" type="button" className={item} onClick={() => (setOpen(false), onSettings())}>
+            <Settings size={14} />
+            Settings
+          </button>
+          <button role="menuitem" type="button" className={item} onClick={onSignOut}>
+            <LogOut size={14} />
+            Sign out
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function Header({ me, signedOut, job, onSignOut, onSettings }: { me: Me | null; signedOut: boolean; job: Job | null; onSignOut: () => void; onSettings: () => void }) {
   const path = usePathname();
   const step = path.startsWith("/setup") ? 1 : path.startsWith("/report") ? (job && isWorking(job) ? 2 : 3) : 0;
   const onVoice = path.startsWith("/voice");
@@ -32,15 +78,7 @@ export function Header({ me, signedOut, job, onSignOut }: { me: Me | null; signe
               <MessageSquareText size={14} />
               Voice rules
             </Link>
-            {me && !me.demo && (
-              <div className="flex items-center gap-3 text-sm text-white/80">
-                <span className="hidden xl:inline">{me.email}</span>
-                <button type="button" onClick={onSignOut} className="inline-flex items-center gap-1.5 rounded-full border border-white/25 px-3.5 py-1.5 font-semibold text-white hover:bg-white/10">
-                  <LogOut size={14} />
-                  Sign out
-                </button>
-              </div>
-            )}
+            {me && !me.demo && <AccountMenu me={me} onSettings={onSettings} onSignOut={onSignOut} />}
           </div>
         )}
       </div>

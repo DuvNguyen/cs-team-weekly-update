@@ -5,6 +5,7 @@ import { api, ApiError, type Config, type Job, type Me } from "../../lib/api";
 import { Login } from "../report/login";
 import { Alert, Skeleton } from "../ui/feedback";
 import { Header } from "./header";
+import { SettingsDialog } from "./settings-dialog";
 
 /* What every page can read: who is signed in, the config, and the report job being worked on. */
 type App = { me: Me; config: Config; job: Job | null; setJob: (j: Job | null) => void };
@@ -23,6 +24,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [job, setJob] = useState<Job | null>(null);
   const [needLogin, setNeedLogin] = useState(false);
   const [loadError, setLoadError] = useState("");
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [secretMissing, setSecretMissing] = useState(false);
   const [authError] = useState(() =>
     typeof window === "undefined" ? "" : (new URLSearchParams(window.location.search).get("auth_error") ?? ""),
   );
@@ -38,6 +41,12 @@ export function AppShell({ children }: { children: ReactNode }) {
       .catch((e) => (e instanceof ApiError && e.status === 401 ? setNeedLogin(true) : setLoadError(e.message)));
   }, []);
 
+  // No Google client secret yet: nobody can sign in, so point at Settings (checked again after each import).
+  const checkSetup = () => api.setupStatus().then((s) => setSecretMissing(!s.client_secret)).catch(() => {});
+  useEffect(() => {
+    if (needLogin) checkSetup();
+  }, [needLogin]);
+
   async function signOut() {
     await api.logout().catch(() => {});
     window.location.reload();
@@ -45,10 +54,10 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <>
-      <Header me={me} signedOut={needLogin} job={job} onSignOut={signOut} />
+      <Header me={me} signedOut={needLogin} job={job} onSignOut={signOut} onSettings={() => setSettingsOpen(true)} />
       <main className="mx-auto w-full max-w-[var(--container-max)] flex-1 px-8 py-10">
         {needLogin ? (
-          <Login reason={authError} />
+          <Login reason={authError} secretMissing={secretMissing} onSettings={() => setSettingsOpen(true)} />
         ) : loadError ? (
           <Alert>Could not reach the backend ({loadError}). Is the Python server running on port 8000?</Alert>
         ) : !me || !config ? (
@@ -60,6 +69,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <AppContext.Provider value={{ me, config, job, setJob }}>{children}</AppContext.Provider>
         )}
       </main>
+      <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} onChanged={checkSetup} />
     </>
   );
 }

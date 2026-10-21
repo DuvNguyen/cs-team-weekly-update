@@ -45,6 +45,8 @@ export class ApiError extends Error {
   }
 }
 
+export type Settings = { client_secret: boolean; gemini_key: string };
+
 export type Me = { email: string; name: string; picture: string; demo: boolean };
 
 async function call<T>(url: string, init?: RequestInit): Promise<T> {
@@ -71,6 +73,10 @@ export const api = {
   me: () => call<Me>("/api/auth/me"),
   logout: () => call<{ ok: boolean }>("/api/auth/logout", send("POST")),
   config: () => call<Config>("/api/config"),
+  setupStatus: () => call<{ client_secret: boolean }>("/api/setup-status"),
+  settings: () => call<Settings>("/api/settings"),
+  importClientSecret: (content: string) => call<{ ok: boolean }>("/api/settings/client-secret", send("PUT", { content })),
+  importEnv: (content: string) => call<{ updated: string[] }>("/api/settings/env", send("PUT", { content })),
   voice: () => call<Voice>("/api/voice"),
   saveVoice: (v: Voice) => call<Voice>("/api/voice", send("PUT", v)),
   analyzeStyle: (email: string) => call<Style>("/api/voice/analyze", send("POST", { email })),

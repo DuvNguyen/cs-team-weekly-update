@@ -1,4 +1,4 @@
-import { LogIn } from "lucide-react";
+import { LogIn, Settings } from "lucide-react";
 import { Alert } from "../ui/feedback";
 
 const REASONS: Record<string, string> = {
@@ -10,7 +10,7 @@ const REASONS: Record<string, string> = {
 };
 
 /* Shown while there is no valid session. The button is a plain link: the whole OAuth dance is redirects. */
-export function Login({ reason }: { reason: string }) {
+export function Login({ reason, secretMissing, onSettings }: { reason: string; secretMissing: boolean; onSettings: () => void }) {
   return (
     <div className="mx-auto max-w-lg">
       <section className="card rise space-y-6 p-10 text-center">
@@ -19,10 +19,25 @@ export function Login({ reason }: { reason: string }) {
           Use the Google account that has access to your clients&rsquo; Search Console and the SEO team sheet. You stay signed in for 30 days.
         </p>
         {reason && <Alert>{REASONS[reason] ?? "Sign-in failed. Please try again."}</Alert>}
-        <a href="/api/auth/login" className="btn btn-primary btn-lg !text-white no-underline hover:!no-underline">
-          <LogIn size={18} />
-          Sign in with Google
-        </a>
+        {secretMissing ? (
+          <>
+            <Alert tone="info">First time here: import the Google client secret before signing in.</Alert>
+            <button type="button" onClick={onSettings} className="btn btn-primary btn-lg !text-white">
+              <Settings size={18} />
+              Open settings
+            </button>
+          </>
+        ) : (
+          <>
+            <a href="/api/auth/login" className="btn btn-primary btn-lg !text-white no-underline hover:!no-underline">
+              <LogIn size={18} />
+              Sign in with Google
+            </a>
+            <div>
+              <button type="button" onClick={onSettings} className="text-sm text-grey-600 underline">Settings</button>
+            </div>
+          </>
+        )}
       </section>
     </div>
   );
