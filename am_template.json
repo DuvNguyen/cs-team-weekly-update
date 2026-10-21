@@ -1,0 +1,131 @@
+{
+  "title": "Account Manager End-of-Week Report & Sync Prep",
+  "header": {
+    "submitted_by": "Submitted by:",
+    "date": "Date of Submission:",
+    "reviewer": "Reviewer:",
+    "due_note": "(Due every Friday by 4:00 PM)"
+  },
+  "sections": [
+    {
+      "heading": "1. Department-Specific Operations",
+      "subsections": [
+        {
+          "heading": "A. Development",
+          "objective": "Objective: Zero downtime or idle time for developers.",
+          "items": [
+            {
+              "key": "dev_lockin",
+              "label": "Developer Task Lock-In",
+              "text": "Does TRI have his exact task queues locked in for Monday morning? (Mimi to attach a screenshot/link to the finalized project board for next week below).",
+              "answer": "dev_pictures"
+            },
+            {
+              "key": "scope_creep",
+              "label": "Scope Creep & Upsell Tracking",
+              "text": "Have any technical out-of-scope requests from the past week been flagged, documented, and passed to Account Management for upsell estimation?",
+              "answer": null
+            },
+            {
+              "key": "handovers",
+              "label": "Cross-Department Handovers",
+              "text": "Have all technical assets or handovers required by other teams (e.g., SEO, Marketing) been delivered so no external campaigns are delayed?",
+              "answer": null
+            }
+          ]
+        },
+        {
+          "heading": "B. Account Management (AM) Sync",
+          "objective": "Objective: Align internal delivery with client-facing expectations.",
+          "items": [
+            {
+              "key": "client_alignment",
+              "label": "Client Deliverable Alignment",
+              "text": "Have you synced with the Account Manager (Mimi) to review upcoming client deadlines, urgent requests, and report delivery statuses for next week?",
+              "answer": "client_lists",
+              "lists": [
+                "Last week:",
+                "This week:"
+              ]
+            },
+            {
+              "key": "blockers",
+              "label": "Blocker Resolution",
+              "text": "Are there any internal blockers preventing the delivery team from meeting CS team’s promises? If yes, what is the mitigation plan?",
+              "answer": "blockers"
+            },
+            {
+              "key": "updates_added",
+              "label": "Weekly Updates Added to SD Friday",
+              "text": "All team updates are added to SD Friday, this includes Client Service level updates, Development updates if applicable, SEO updates if applicable.",
+              "answer": null
+            }
+          ]
+        },
+        {
+          "heading": "C. SEO Department",
+          "objective": "Objective: Maintain tight oversight on output, even with self-managing or remote staff.",
+          "items": [
+            {
+              "key": "lead_alignment",
+              "label": "Lead Alignment",
+              "text": "Have you synced with Simon to confirm next week's core strategy and deliverables?",
+              "answer": null
+            },
+            {
+              "key": "task_delegation",
+              "label": "Task Delegation Audit",
+              "text": "For team members reliant on the Lead for task assignments, have their next 3-5 days of work been mapped out? If no tasks are available, what is their explicit fallback optimization focus?",
+              "answer": "seo_pictures"
+            },
+            {
+              "key": "tooling",
+              "label": "Tooling & Technical Support",
+              "text": "Are all technical tools, scripts, or analyzers required by the SEO team fully functional and delivered?",
+              "answer": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "2. Monday Townhall & Operations Prep",
+      "subsections": [
+        {
+          "heading": null,
+          "objective": "Objective: Ensure Monday morning kicks off with absolute structure, clarity, and zero technical friction.",
+          "items": [
+            {
+              "key": "townhall",
+              "label": "Townhall Presentation Ready",
+              "text": "Is the Monday Townhall presentation fully updated with the previous week's performance metrics, company wins, and the upcoming week's focus. SD Townhalls ",
+              "answer": null
+            },
+            {
+              "key": "logistics",
+              "label": "Meeting Logistics & Links",
+              "text": "Have all calendar invites for the upcoming week (especially the Townhall) been audited? Are valid, working video links attached, ensuring seamless access for both in-office and WFH staff?",
+              "answer": null
+            },
+            {
+              "key": "roster",
+              "label": "Weekly WFH/In-Office Roster",
+              "text": "Has the team’s attendance schedule for next week been mapped out so we know exactly who is remote and when?",
+              "answer": null
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "signatures": [
+    {
+      "name": "Mimi Pham",
+      "role": "Account Manager"
+    },
+    {
+      "name": "Jonas Hoener",
+      "role": "COO"
+    }
+  ]
+}
