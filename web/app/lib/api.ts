@@ -55,6 +55,12 @@ export type AmData = {
   last_week: string[];
   this_week: string[];
   blockers: string[];
+  answers: Record<string, string>;
+};
+export type AmItem = { key: string; label: string; text: string; answer: string | null; lists?: string[] };
+export type AmTemplate = {
+  title: string;
+  sections: { heading: string; subsections: { heading: string | null; objective: string; items: AmItem[] }[] }[];
 };
 export type AmPicture = { section: "dev" | "seo"; person: string; week: "this" | "next"; name: string; url: string };
 export type AmResult = { week_start: string; data: AmData; pictures: AmPicture[]; blank: string[]; warnings: string[]; idle: string[] };
@@ -125,6 +131,7 @@ export const api = {
     URL.revokeObjectURL(url);
     return name;
   },
+  amTemplate: () => call<AmTemplate>("/api/am-report/template"),
   amSettings: () => call<AmSettings>("/api/am-report/settings"),
   saveAmSettings: (v: AmSettings) => call<AmSettings>("/api/am-report/settings", send("PUT", v)),
   amGenerate: (week: string) => call<AmResult>("/api/am-report/generate", send("POST", { week })),
