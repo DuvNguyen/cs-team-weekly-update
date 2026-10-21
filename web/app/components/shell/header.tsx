@@ -26,7 +26,7 @@ function AccountMenu({ me, onVoice, onSettings, onSignOut }: { me: Me; onVoice: 
     };
   }, [open]);
 
-  const item = "flex w-full items-center gap-2 rounded-[var(--radius-md)] px-3 py-2 text-left text-sm font-semibold text-ink hover:bg-grey-100";
+  const item = "flex w-full items-center gap-2 rounded-[var(--radius-md)] px-3 py-2 text-left text-sm font-semibold !text-ink hover:bg-grey-100";
   return (
     <div ref={box} className="relative">
       <button type="button" onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open} aria-label="Account menu" className="flex items-center gap-3 rounded-full text-sm font-semibold text-white">
@@ -42,7 +42,7 @@ function AccountMenu({ me, onVoice, onSettings, onSignOut }: { me: Me; onVoice: 
       </button>
       {open && (
         <div role="menu" className="absolute right-0 top-full z-20 mt-2 w-64 rounded-[var(--radius-lg)] bg-white p-2 shadow-lg">
-          <p className="truncate px-3 py-2 text-sm text-grey-600">{me.email}</p>
+          <p className="truncate px-3 py-2 text-sm text-ink">{me.email}</p>
           <Link role="menuitem" href="/voice" aria-current={onVoice ? "page" : undefined} className={`${item} !no-underline ${onVoice ? "bg-brand-050" : ""}`} onClick={() => setOpen(false)}>
             <MessageSquareText size={14} />
             Voice rules
