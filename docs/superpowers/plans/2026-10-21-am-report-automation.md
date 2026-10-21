@@ -2,19 +2,19 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** A page in the Weekly Update app that reads SD Friday (read-only), fills the real "Account Manager Report & Sync Prep" `.docx` template, and downloads it, leaving everything SD Friday can't supply blank and highlighted.
+**Goal:** A page in the Weekly Update app that reads SD Friday (read-only), builds the "Account Manager Report & Sync Prep" `.docx` (same sections, wording and bullets as the sample, a cleaner Saigon Digital look), and downloads it, leaving everything SD Friday can't supply blank and highlighted.
 
 **Architecture:** Flat Python modules next to the existing ones: a read-only Postgres client (`sdf.py`), pure workload maths (`workload.py`), a row-image renderer (`workload_pic.py`), a bullet builder (`am_bullets.py`), a template filler (`am_docx.py`), a small settings store (`am_settings.py`) and a FastAPI router (`am_web.py`, same pattern as `settings_web.py`). A new Next.js page `/am-report` reached from the account dropdown.
 
 **Tech Stack:** Python 3.12 + FastAPI, psycopg 3, python-docx, matplotlib (all already in `.venv`; add `psycopg[binary]` to `requirements.txt`), Next.js 16 / React 19, pytest.
 
-**Spec:** `docs/superpowers/specs/2026-10-21-am-report-automation-design.md`. The workload maths must match SD Friday's own code: `/home/levi/Desktop/Projects/digital-timesheet/app/api/workload/tasks/route.ts` and `components/workload/WorkloadChart.tsx` (read-only reference, never edit it). The template is `docs/15 (16.10) - Account Manager Report & Sync Prep.docx`.
+**Spec:** `docs/superpowers/specs/2026-10-21-am-report-automation-design.md`. The workload maths must match SD Friday's own code: `/home/levi/Desktop/Projects/digital-timesheet/app/api/workload/tasks/route.ts` and `components/workload/WorkloadChart.tsx` (read-only reference, never edit it). The sample `docs/15 (16.10) - Account Manager Report & Sync Prep.docx` is the reference for wording and order.
 
 ## Global Constraints
 
 - Read-only: only fixed `select` statements, no user text in SQL. Connection string is `SDF_READONLY_DB_URL` in `.env` (gitignored); the `wut_readonly` role can read `tasks`, `projects(id, name)` and `profiles(id, full_name, sheet_name, department, role, expected_hours, is_active)` only.
 - The connection string, passwords and people's emails are never logged, printed, returned by the API or sent to the browser. Names come from `full_name` (fall back to `sheet_name`).
-- The template file in `docs/` is never modified; output goes to `out/` (gitignored).
+- The sample in `docs/` is never modified; output goes to `out/` (gitignored). The report keeps the sample's sections, wording, order and bullets; only the appearance changes.
 - Never keep the sample's answers ("None", "Yes", "Nein.", the CRCC note, dated bullets): clear them, fill from data or leave a yellow-highlighted empty line.
 - Blank means blank: no invented text.
 - Weeks are Monday to Friday. Port stays 3000. No Gemini in this version.
@@ -40,7 +40,8 @@
 | `workload_pic.py` | Draws one person-row PNG in the sample's dark style |
 | `am_bullets.py` | Status mapping, client bullets, blockers (pure) |
 | `am_settings.py` | Submitter, reviewer, rosters; JSON in `data/` |
-| `am_docx.py` | Fills the template and writes the output `.docx` |
+| `am_template.json` | The sample's headings and prompts, word for word, as data |
+| `am_docx.py` | Builds the styled `.docx` from that data and the report values |
 | `am_web.py` | Router: settings, generate, pictures, export |
 | `web/app/am-report/page.tsx`, `web/app/components/am/am-report.tsx` | The page |
 
@@ -87,18 +88,18 @@
 - [ ] **Step 4: Run** → PASS. Open one rendered PNG next to the sample crop to eyeball the match (Read the image).
 - [ ] **Step 5: Commit** `feat: draw workload row pictures`.
 
-### Task 4: Template filler
+### Task 4: Styled report builder
 
-**Files:** Create `am_docx.py`, `tests/test_am_docx.py`.
+**Files:** Create `am_template.json`, `am_docx.py`, `tests/test_am_docx.py`.
 
 **Interfaces:**
-- Produces: `fill(template: str, out_path: str, data: dict) -> list[str]` returning the list of prompts left blank. `data` keys: `submitter`, `reviewer`, `date_text`, `dev_pictures: list[str]`, `seo_pictures: list[str]`, `last_week: list[str]`, `this_week: list[str]`, `blockers: list[str]`. Missing or empty keys mean blank.
+- Produces: `build(out_path: str, data: dict) -> list[str]` returning the prompts left blank. `data` keys: `submitter`, `reviewer`, `date_text`, `dev_pictures: list[str]`, `seo_pictures: list[str]`, `last_week: list[str]`, `this_week: list[str]`, `blockers: list[str]`; missing or empty means blank. `am_template.json` holds, in order, the title, header labels, section and sub-section headings, each prompt and objective line, and the signature-table labels, copied word for word from the sample (extract them with python-docx; never retype).
 
-- [ ] **Step 1: Failing tests** against a copy of the real template (`docs/15 (16.10) - …docx`): `test_header_filled` (paragraphs starting `Submitted by:`, `Date of Submission:`, `Reviewer:` carry the data); `test_sample_answers_are_cleared` (none of "Nein.", "CRCC Asia", "Kenno feedback" remain); `test_bullets_inserted_under_last_and_this_week` (text present and the paragraph keeps the numbering properties of a sample bullet); `test_pictures_replace_the_five_sample_images` (inline picture count equals `len(dev)+len(seo)`, and each sits under its section); `test_unfilled_prompts_are_highlighted_and_returned` (yellow highlight on the empty answer line; returned list contains e.g. `"Scope Creep & Upsell Tracking"`); `test_template_file_is_unchanged` (byte hash before and after); `test_odd_and_long_text_is_safe` (names with `&`, `<`, quotes, emoji and 500 characters).
+- [ ] **Step 1: Failing tests:** `test_every_sample_prompt_is_present_in_order` (each prompt and heading from the sample `.docx` appears in the output, same order, same wording); `test_sample_answers_are_not_copied` (no "Nein.", "CRCC Asia", "Kenno feedback"); `test_header_filled`; `test_bullets_under_last_and_this_week` (real list paragraphs, not typed "-" characters); `test_pictures_sit_under_their_sections` (picture count equals `len(dev)+len(seo)`, dev ones under A, SEO ones under C); `test_unfilled_prompts_are_highlighted_and_returned` (yellow highlight on the empty answer line; returned list contains e.g. `"Scope Creep & Upsell Tracking"`); `test_sample_file_is_unchanged` (hash before and after); `test_odd_and_long_text_is_safe` (`&`, `<`, quotes, emoji, 500 characters).
 - [ ] **Step 2: Run** → FAIL.
-- [ ] **Step 3: Implement** with python-docx. Locate each section by the prompt's first words (the labels in the design), not by paragraph index. Insert bullets by deep-copying an existing bullet paragraph and replacing its text. Replace pictures by removing the sample's picture paragraphs and adding new ones with `add_picture` at the template's image width. Highlight with `WD_COLOR_INDEX.YELLOW` on an empty run.
-- [ ] **Step 4: Run** → PASS. Open the output with `soffice --headless --convert-to pdf` if available, or re-open with python-docx, and eyeball it against the sample.
-- [ ] **Step 5: Commit** `feat: fill the AM report template`.
+- [ ] **Step 3: Implement** with python-docx: a new document, A4, brand look (navy `#031425`-style headings and the project's blue accent from `web/app/styles/colors.css`, a clean sans font that Word has, spacing between prompts, a shaded header block, a tidy signature table at the end). Bullets use Word's built-in "List Bullet" style. Pictures use `add_picture` at the page text width.
+- [ ] **Step 4: Run** → PASS. Convert the output to PDF with `soffice --headless` if available (else open it in Word), view a page as an image, and check it looks tidy next to the sample.
+- [ ] **Step 5: Commit** `feat: build the styled AM report`.
 
 ### Task 5: Settings, bullets, blockers and the data assembly
 
@@ -153,6 +154,6 @@
 
 ## Self-review
 
-- **Spec coverage:** header (Task 4, 5), pictures per person for both weeks (3, 6), bullets and blockers (5), blanks and highlighting (4), read-only and secrecy (1, 6, 8), "Weekly Updates Added" blank (4: left blank), page and menu (7), template untouched (4, 6), open questions defaulted (5 settings). Gap: none found.
+- **Spec coverage:** header (Task 4, 5), pictures per person for both weeks (3, 6), bullets and blockers (5), blanks and highlighting (4), read-only and secrecy (1, 6, 8), "Weekly Updates Added" blank (4: left blank), page and menu (7), sample untouched (4, 6), open questions defaulted (5 settings). Gap: none found.
 - **Types:** `fetch_tasks`/`fetch_people` shapes used consistently in Tasks 2, 5, 6; `render_row` signature matches its use in Task 6.
 - **Proportion:** about 1.5× the spec, mostly signatures and test names.

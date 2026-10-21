@@ -11,7 +11,7 @@ This adds a page to the existing Weekly Update web app that pulls the data from 
 ## Goals
 
 - One click produces a `.docx` that looks exactly like the sample, filled with this week's data.
-- The template is the sample file itself. Headings, questions, bullets, signature table and layout don't change.
+- The report keeps the sample's **content**: same sections, same questions, same wording, same bullets, same signature table. Its **look** may be better than the sample (the product owner said "or better appearance"), in the Saigon Digital style.
 - Workload pictures drawn by Python replace the screenshots she pastes by hand.
 - Blank fields are easy to see and fill in before sending.
 - Read-only access to SD Friday, with the credential never reaching the browser or git.
@@ -27,13 +27,13 @@ This adds a page to the existing Weekly Update web app that pulls the data from 
 ## Anti-goals (a failure even if it technically works)
 
 - Any credential with more power than reading three tables.
-- A document that looks different from what the COO is used to.
+- A document whose sections, questions or order differ from the sample the COO knows. (A cleaner look is fine.)
 - Invented text. If the data isn't there, the field is blank, not guessed.
 - Leaking the connection string or the people's emails.
 
 ## Decisions already made (by the product owner)
 
-- The sample `.docx` is the template; its bullets and prompts stay the same.
+- The sample `.docx` defines the content: its sections, prompts and bullets stay the same. The appearance may be improved.
 - Python draws the workload pictures, in the style of SD Friday's workload grid (rows are people, columns are days, a bubble per day).
 - The pictures cover **this week and next week**.
 - Fields that can't be pulled stay empty for the CS team.
@@ -87,7 +87,7 @@ Source: tasks grouped by project for this week (Last week) and next week (This w
    - `GET /api/am-report/pictures/{name}` serves a picture.
    - `POST /api/am-report/export` returns the `.docx`.
    - All behind the existing sign-in gate. Without the connection string, the page says so and nothing runs.
-2. **Template filling:** open the sample `.docx` with python-docx, find each prompt by its text, and write the answer under it. The five pasted screenshots in the sample are replaced by the generated pictures where they belong. Anything unfilled is highlighted yellow so it can't be missed. The sample file in `docs/` is never modified; the output is a new file.
+2. **Building the document:** the questions and headings are stored as data, copied word for word from the sample. python-docx writes a new `.docx` from that data in a cleaner Saigon Digital style (navy headings, brand font, comfortable spacing, a tidy header block and signature table), with the generated pictures under their sections. Anything unfilled is shown as an empty line with a yellow highlight so it can't be missed. The sample file in `docs/` is the reference for wording and order and is never modified.
 3. **Page (Next.js):** a new "AM Report" page reached from the account dropdown. Pick the week (default: the current one), press Generate, review each filled section in a form, edit or fill blanks, then Download `.docx`. Edits are kept in the page for the session.
 4. **Settings:** the connection string is not entered in the UI in this version (it is set in `.env`, like the Gemini key). Whether to add it to the Settings dialog is left to the builder.
 
@@ -103,7 +103,7 @@ Source: tasks grouped by project for this week (Last week) and next week (This w
 
 - Read-only everywhere. Queries are fixed `select` statements; no user text is put into SQL.
 - The connection string and the people's emails are never logged, printed, returned by the API, or sent to the browser. Names come from `full_name` only.
-- The sample `.docx` stays untouched and in git. The output goes in `out/`, which is gitignored.
+- The sample `.docx` stays untouched and in git as the wording reference. The output goes in `out/`, which is gitignored.
 - One user, one Mac. No new hosting. The port stays 3000 because of the Google sign-in redirect.
 - Python libraries added: `psycopg[binary]` (already tested here) and `python-docx` (already in `requirements.txt`).
 
@@ -120,6 +120,7 @@ Source: tasks grouped by project for this week (Last week) and next week (This w
 - The pictures show Monday to Friday and use the department filter: Development for A, SEO for C.
 - Highlighting blank fields in yellow.
 - Dark-theme row images, matching the sample.
+- The document is built from scratch with the sample's wording, not by editing the sample, which also avoids relying on paragraph positions.
 - "Last week" means last week's tasks and "This week" means this week's; the exact wording in the sample is "Last week" and "This week" for client progress, and I am assuming that maps to tasks active in those weeks.
 - The page is reached from the account dropdown, next to Voice rules.
 - Roster in Settings (not `profiles.department`) decides who is in each picture.
@@ -139,6 +140,7 @@ Source: tasks grouped by project for this week (Last week) and next week (This w
 ## How we'll know it works
 
 - The generated picture matches SD Friday's workload grid for the same week and people.
-- The generated `.docx` opens in Word, looks like the sample, and every blank is highlighted.
+- The generated `.docx` opens in Word, looks clean and on brand, and every blank is highlighted.
+- The generated `.docx` contains every section, question and bullet of the sample, in the same order, with the same wording.
 - A run with the connection string missing or wrong fails with a clear message and writes nothing.
 - No secret appears in logs, API responses or git.
