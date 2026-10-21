@@ -4,7 +4,7 @@
 
 **Goal:** A page in the Weekly Update app that reads SD Friday (read-only), builds the "Account Manager Report & Sync Prep" `.docx` (same sections, wording and bullets as the sample, a cleaner Saigon Digital look), and downloads it, leaving everything SD Friday can't supply blank and highlighted.
 
-**Architecture:** Flat Python modules next to the existing ones: a read-only Postgres client (`sdf.py`), pure workload maths (`workload.py`), a row-image renderer (`workload_pic.py`), a bullet builder (`am_bullets.py`), a template filler (`am_docx.py`), a small settings store (`am_settings.py`) and a FastAPI router (`am_web.py`, same pattern as `settings_web.py`). A new Next.js page `/am-report` reached from the account dropdown.
+**Architecture:** Flat Python modules next to the existing ones: a read-only Postgres client (`sdf.py`), pure workload maths (`workload.py`), a row-image renderer (`workload_pic.py`), a bullet builder (`am_bullets.py`), a styled report builder (`am_docx.py`), a small settings store (`am_settings.py`) and a FastAPI router (`am_web.py`, same pattern as `settings_web.py`). A new Next.js page `/am-report` reached from the account dropdown.
 
 **Tech Stack:** Python 3.12 + FastAPI, psycopg 3, python-docx, matplotlib (all already in `.venv`; add `psycopg[binary]` to `requirements.txt`), Next.js 16 / React 19, pytest.
 
@@ -122,7 +122,7 @@
 **Interfaces:**
 - Produces, all behind `auth_web.require_user`: `GET /api/am-report/settings`; `PUT /api/am-report/settings`; `POST /api/am-report/generate` body `{week: "YYYY-MM-DD"}` returning `{week_start, data, pictures: [{section, person, week, name}], blank: [str], warnings: [str]}`; `GET /api/am-report/pictures/{name}`; `POST /api/am-report/export` body is the (possibly edited) `data` plus `week_start`, returns the `.docx` with `Content-Disposition`.
 
-- [ ] **Step 1: Failing tests** (TestClient, `sdf` functions monkeypatched, `WUT_DEMO=1` so the gate passes; pattern in `tests/test_settings_web.py`): `test_generate_returns_blanks_and_pictures`; `test_not_configured_returns_503_and_writes_nothing`; `test_picture_route_rejects_traversal_and_unknown_names` (`../x`, `..%2Fx`, unknown → 404); `test_export_returns_docx_and_leaves_template_untouched`; `test_non_monday_week_is_normalised`; `test_empty_week_still_builds`.
+- [ ] **Step 1: Failing tests** (TestClient, `sdf` functions monkeypatched, `WUT_DEMO=1` so the gate passes; pattern in `tests/test_settings_web.py`): `test_generate_returns_blanks_and_pictures`; `test_not_configured_returns_503_and_writes_nothing`; `test_picture_route_rejects_traversal_and_unknown_names` (`../x`, `..%2Fx`, unknown → 404); `test_export_returns_docx_and_leaves_sample_untouched`; `test_non_monday_week_is_normalised`; `test_empty_week_still_builds`.
 - [ ] **Step 2: Run** → FAIL.
 - [ ] **Step 3: Implement.** Pictures are written to `out/am-report/<week>/` with generated names (`dev-<n>-this.png`); the route serves only names matching `^[a-z0-9-]+\.png$` that exist in that folder. Export builds a fresh file in `out/am-report/` named `Account Manager Report <dd.mm> .docx`.
 - [ ] **Step 4: Run** → PASS, then run the whole suite: `.venv/bin/python -m pytest tests -q`.
