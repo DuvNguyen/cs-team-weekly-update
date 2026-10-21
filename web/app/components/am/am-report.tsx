@@ -41,7 +41,7 @@ function Pictures({ pictures, week }: { pictures: AmPicture[]; week: string }) {
       <Badge tone="sky">From SD Friday</Badge>
       {pictures.map((p) => (
         // eslint-disable-next-line @next/next/no-img-element
-        <img key={`${week}-${p.name}`} src={p.url} alt={`${p.person}: workload this week and next week`} className="w-full max-w-3xl rounded-[var(--radius-md)]" />
+        <img key={`${week}-${p.name}`} src={p.url} alt={`${p.person}, ${p.week} week`} className="w-full max-w-3xl rounded-[var(--radius-md)]" />
       ))}
     </div>
   );

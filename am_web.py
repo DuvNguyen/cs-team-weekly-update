@@ -99,13 +99,13 @@ def generate(body: GenerateIn):
         matched, missing = am_bullets.match_roster(roster, people)
         warnings += [f"{n} was not found in SD Friday, so there is no picture for them." for n in missing]
         for i, person in enumerate(matched, 1):
-            groups = {label: hours[which].get(person["id"]) or {weeks[which] + dt.timedelta(days=n): 0.0 for n in range(5)}
-                      for which, label in (("this", "This week"), ("next", "Next week"))}
-            fname = f"{section}-{i}.png"
-            workload_pic.render_row(person["name"], person["expected_hours"], groups, os.path.join(folder, fname))
-            names[key].append(fname)
-            pictures.append({"section": section, "person": person["name"], "name": fname,
-                             "url": f"/api/am-report/pictures/{monday.isoformat()}/{fname}?v={version}"})
+            for which, label in (("this", "this week"), ("next", "next week")):
+                days = hours[which].get(person["id"]) or {weeks[which] + dt.timedelta(days=n): 0.0 for n in range(5)}
+                fname = f"{section}-{i}-{which}.png"
+                workload_pic.render_row(person["name"], person["expected_hours"], days, os.path.join(folder, fname), caption=label)
+                names[key].append(fname)
+                pictures.append({"section": section, "person": person["name"], "week": which, "name": fname,
+                                 "url": f"/api/am-report/pictures/{monday.isoformat()}/{fname}?v={version}"})
             if not hours["next"].get(person["id"]):
                 idle.append(person["name"])
     last_week, this_week = am_bullets.client_bullets(tasks, projects, monday)

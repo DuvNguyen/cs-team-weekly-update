@@ -38,7 +38,7 @@ def test_generate_returns_blanks_and_pictures(client):
     assert "Scope Creep & Upsell Tracking" in body["blank"]
     assert "Kenno: 1 in progress (Fix header)" in body["data"]["this_week"]
     assert body["data"]["blockers"] == ["Stuck job (Kenno): Stuck"]
-    assert len(body["pictures"]) == 3                      # one picture per matched person, both weeks in it
+    assert len(body["pictures"]) == 6                      # 3 matched people x (this week, next week)
     assert body["warnings"] and any("Nguyen Nguyen Thi My" in w for w in body["warnings"])   # roster name with no match
     for p in body["pictures"]:
         assert c.get(p["url"]).status_code == 200
