@@ -13,3 +13,7 @@ data/
 # Launcher state
 .env.os_cache
 .run/
+
+# Word/Office lock files
+.~*
+~$*
