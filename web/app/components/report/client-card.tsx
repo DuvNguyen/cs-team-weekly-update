@@ -3,7 +3,7 @@
 import { Pencil, RotateCcw } from "lucide-react";
 import { api, type ClientRow, type Job } from "../../lib/api";
 import { Checkbox } from "../ui/checkbox";
-import { Alert, Badge, Skeleton } from "../ui/feedback";
+import { Badge, ExpandableAlert, Skeleton } from "../ui/feedback";
 import { Stats } from "./stats";
 
 export function ClientCard(props: {
@@ -70,7 +70,7 @@ export function ClientCard(props: {
 
       {c.status === "failed" && (
         <div className="max-w-2xl space-y-4">
-          <Alert>{c.error}</Alert>
+          <ExpandableAlert>{c.error}</ExpandableAlert>
           <button onClick={onRetry} className="btn btn-outline">
             <RotateCcw size={16} />
             Retry

@@ -273,7 +273,7 @@ def generate_client(job: dict, c: dict, config: dict, svc) -> None:
         c["totals"], c["prev_totals"] = series["totals"], prev["totals"]
         c["has_chart"], c["status"] = True, "ok"
     except Exception as e:
-        c["status"], c["error"] = "failed", str(e).splitlines()[0][:200]
+        c["status"], c["error"] = "failed", str(e).splitlines()[0][:1000]
         c["include"] = False
 
 
