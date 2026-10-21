@@ -29,13 +29,16 @@ function AccountMenu({ me, onVoice, onSettings, onSignOut }: { me: Me; onVoice: 
   const item = "flex w-full items-center gap-2 rounded-[var(--radius-md)] px-3 py-2 text-left text-sm font-semibold text-ink hover:bg-grey-100";
   return (
     <div ref={box} className="relative">
-      <button type="button" onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open} aria-label="Account menu" className="flex size-9 items-center justify-center overflow-hidden rounded-full border border-white/25 bg-white/10 text-sm font-semibold text-white hover:bg-white/20">
-        {me.picture ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={me.picture} alt="" referrerPolicy="no-referrer" className="size-full object-cover" />
-        ) : (
-          (me.name || me.email).charAt(0).toUpperCase()
-        )}
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open} aria-label="Account menu" className="flex items-center gap-3 rounded-full text-sm font-semibold text-white">
+        <span className="hidden max-w-48 truncate sm:inline">{me.name || me.email}</span>
+        <span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/25 bg-white/10 hover:bg-white/20">
+          {me.picture ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={me.picture} alt="" referrerPolicy="no-referrer" className="size-full object-cover" />
+          ) : (
+            (me.name || me.email).charAt(0).toUpperCase()
+          )}
+        </span>
       </button>
       {open && (
         <div role="menu" className="absolute right-0 top-full z-20 mt-2 w-64 rounded-[var(--radius-lg)] bg-white p-2 shadow-lg">
