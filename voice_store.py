@@ -35,7 +35,7 @@ def default_style() -> dict:
     avoid = [re.sub(r"^:?\s*", "", p).replace("\n", " ").strip() for p in ("Avoid" + avoid_txt).split("Avoid") if p.strip()]
     examples = [{"id": _rid(), "label": m.group(1), "text": " ".join(m.group(2).split()), "enabled": True}
                 for m in re.finditer(r'Example of her writing (.+?):\n"(.*?)"', _ORIG_EXAMPLES, re.S)]
-    return {"id": "default", "name": "Mimi (original)", "persona": " ".join(head.split()),
+    return {"id": "default", "name": "Mimi", "persona": " ".join(head.split()),
             "style": _rows([" ".join(s) for s in style]), "avoid": _rows(avoid), "examples": examples}
 
 
@@ -55,7 +55,7 @@ def load() -> dict:
     except (FileNotFoundError, json.JSONDecodeError):
         return default()
     if "styles" not in v:                                   # first version stored one style at the top level
-        v = {"styles": [{"id": "default", "name": "Mimi (original)", **{k: v[k] for k in ("persona", "style", "avoid", "examples") if k in v}}],
+        v = {"styles": [{"id": "default", "name": "Mimi", **{k: v[k] for k in ("persona", "style", "avoid", "examples") if k in v}}],
              "default_id": "default"}
     return v
 

@@ -247,10 +247,6 @@ export function VoiceManager() {
             <Plus size={16} />
             Add style
           </button>
-          <p className="flex items-start gap-1.5 text-sm text-grey-600">
-            <Star size={14} aria-hidden className="mt-0.5 shrink-0 fill-sun text-sun" />
-            The default is used for new reports unless you pick another style on Setup.
-          </p>
         </aside>
 
         <div className="space-y-8 lg:col-span-9">
