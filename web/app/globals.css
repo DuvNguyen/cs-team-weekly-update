@@ -98,6 +98,13 @@ body {
     box-shadow: var(--shadow-sm);
   }
 
+  /* The .rise entry animation makes every card its own stacking context, so a dropdown opening
+     inside one card would sit under the next card. Lift the card that has focus above its siblings. */
+  .card:focus-within {
+    position: relative;
+    z-index: 30;
+  }
+
   .label {
     display: block;
     margin-bottom: 6px;
