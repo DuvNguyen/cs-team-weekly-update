@@ -140,3 +140,20 @@ Pages are real routes. Layouts persist across navigation and Next's Cache Compon
 | `client_secret.json` | The Google OAuth client (app identity). Gitignored. |
 | `data/` | Sessions, per-user Google tokens, `voice.json`. Gitignored. |
 | `token.json` | Old desktop-flow token. No longer used by the web app. |
+
+## 6. Account Manager report
+
+The weekly "Account Manager End-of-Week Report & Sync Prep" `.docx`, built from SD Friday (read-only). Design: `docs/superpowers/specs/2026-10-21-am-report-automation-design.md`.
+
+| File | What it does |
+|---|---|
+| `sdf.py` | Read-only Postgres client for SD Friday (`SDF_READONLY_DB_URL`). `fetch_tasks`, `fetch_people` (no emails), `fetch_projects`. Fixed SELECTs only. |
+| `workload.py` | Hours per person per weekday, ported from SD Friday's workload grid (`daily_hours`, `bubble_status`). |
+| `workload_pic.py` | `render_row` draws one person's row as a PNG, in SD Friday's dark grid style. |
+| `am_bullets.py` | Client bullets per week (`client_bullets`), blockers, status groups, and roster matching. |
+| `am_settings.py` | Submitter, reviewer and the two rosters (developers, SEO), saved in `data/am_settings.json`. |
+| `am_template.json` | The sample report's headings and prompts, word for word. |
+| `am_docx.py` | `build` writes the styled `.docx`; unfilled prompts get a yellow-highlighted empty line. `blank_prompts` lists them. |
+| `am_web.py` | API: `GET/PUT /api/am-report/settings`, `POST /generate`, `GET /pictures/{week}/{name}`, `POST /export`. |
+
+Page: `web/app/am-report` (reached from the account dropdown). Output goes in `out/am-report/`.

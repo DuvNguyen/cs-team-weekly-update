@@ -84,3 +84,9 @@ def test_legacy_text_columns_get_text_params(conn):
     assert isinstance(p["start_s"], str) and isinstance(p["end_s"], str)
     assert p["end_s"].startswith("2026-10-23T23:59")
     assert "timeline <= %(end_s)s" in c.statements[0]
+
+
+def test_expected_hours_are_floats_even_when_postgres_returns_decimals(conn):
+    from decimal import Decimal
+    conn([{"id": "1", "full_name": "A", "sheet_name": None, "department": None, "role": "x", "expected_hours": Decimal("4.5")}])
+    assert isinstance(sdf.fetch_people()[0]["expected_hours"], float)

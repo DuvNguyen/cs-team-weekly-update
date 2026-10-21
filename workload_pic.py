@@ -9,7 +9,7 @@ from matplotlib.patches import Circle
 from workload import bubble_status
 
 WIDTH, HEIGHT, DPI = 800, 64, 100
-MIN_D, MAX_D = 18, 56                          # bubble diameter in px, like getBubbleSize in SD Friday's chart
+MIN_D, MAX_D = 22, 60                          # bubble diameter in px, like getBubbleSize in SD Friday's chart
 BG, TEXT, MUTED = "#131d2e", "#ffffff", "#9aa7bb"
 COLORS = {"under": "#60a5fa", "optimal": "#22c55e", "over": "#ef4444", "none": "#3a465a"}
 _FIRST_X, _STEP = 330, 66                        # centre of the first slot and the gap between slots (5 weekdays, 2 weekend)

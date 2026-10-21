@@ -45,7 +45,7 @@ def fetch_tasks(start: dt.date, end: dt.date) -> list[dict]:
 def fetch_people() -> list[dict]:
     rows = _rows("select id, full_name, sheet_name, department, role, expected_hours from public.profiles where is_active = true")
     return [{"id": str(r["id"]), "name": r["full_name"] or r["sheet_name"] or "", "department": r["department"],
-             "role": r["role"], "expected_hours": r["expected_hours"] or 7} for r in rows]
+             "role": r["role"], "expected_hours": float(r["expected_hours"] or 7)} for r in rows]
 
 
 def fetch_projects() -> dict[str, str]:

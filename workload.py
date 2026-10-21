@@ -36,22 +36,23 @@ def _instances(t: dict):
     if status == DONE:
         return
     peer, qa, pub = _active(status, PEER_STATUSES), _active(status, QA_STATUSES), _active(status, PUBLISH_STATUSES)
-    est = t.get("pic_estimation") or t.get("estimations") or 7
-    tracked = lambda k: t.get(k) or 0
+    num = lambda k: float(t.get(k) or 0)                 # Postgres numerics arrive as Decimal
+    est = num("pic_estimation") or num("estimations") or 7
+    tracked = num
     rows = []
     if t.get("pic_id") and not (peer or qa or pub):
         rows.append((t["pic_id"], "pic", est, tracked("pic_time_tracked")))
     if t.get("peer_reviewer_id") and not (qa or pub):
-        rows.append((t["peer_reviewer_id"], "peer_review", t.get("peer_review_estimation") or est * 0.2, tracked("peer_review_time_tracked")))
+        rows.append((t["peer_reviewer_id"], "peer_review", num("peer_review_estimation") or est * 0.2, tracked("peer_review_time_tracked")))
     if t.get("qa_qc_id") and not pub:
-        rows.append((t["qa_qc_id"], "qa_qc", t.get("qa_qc_estimation") or est * 0.2, tracked("qa_qc_time_tracked")))
+        rows.append((t["qa_qc_id"], "qa_qc", num("qa_qc_estimation") or est * 0.2, tracked("qa_qc_time_tracked")))
     if t.get("publisher_id"):
-        rows.append((t["publisher_id"], "publish", t.get("publish_estimation") or min(est * 0.1, 0.25), tracked("publish_time_tracked")))
+        rows.append((t["publisher_id"], "publish", num("publish_estimation") or min(est * 0.1, 0.25), tracked("publish_time_tracked")))
     for person, phase, estimate, done in rows:
         start, due = day_of(t.get(f"{phase}_start_date")), day_of(t.get(f"{phase}_due_date"))
         start, end = start or due, due or start
         if start and end:
-            yield person, start, end, max(0, estimate - done)
+            yield str(person), start, end, max(0, estimate - done)
 
 
 def daily_hours(tasks: list[dict], week_start: dt.date) -> dict[str, dict[dt.date, float]]:
@@ -76,5 +77,5 @@ def bubble_status(hours: float, expected: float | None) -> str:
     """none (grey) / under (blue) / optimal (green) / over (red), as in SD Friday's grid."""
     if not hours:
         return "none"
-    h, e = round(hours, 6), round(expected or 7, 6)
+    h, e = round(float(hours), 6), round(float(expected or 7), 6)
     return "under" if h < e else "optimal" if h == e else "over"

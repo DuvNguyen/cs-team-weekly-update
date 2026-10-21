@@ -99,3 +99,18 @@ def test_bubble_status_thresholds():
     assert w.bubble_status(7.5, 7) == "over"
     assert w.bubble_status(5, 4) == "over"
     assert w.bubble_status(7, 0) == "optimal" and w.bubble_status(7, None) == "optimal"   # no expectation: default 7h
+
+
+def test_postgres_decimals_are_accepted():
+    from decimal import Decimal
+    t = task(pic_estimation=Decimal("10"), pic_time_tracked=Decimal("2.5"), pic_start_date="2026-10-19", pic_due_date="2026-10-20")
+    assert week("A", [t])[MON] == 3.75
+    assert isinstance(week("A", [t])[MON], float)
+    assert w.bubble_status(Decimal("7"), Decimal("7")) == "optimal"
+
+
+def test_person_ids_are_strings_even_when_postgres_returns_uuids():
+    import uuid
+    uid = uuid.uuid4()
+    t = task(pic_id=uid, pic_estimation=4, pic_start_date="2026-10-19", pic_due_date="2026-10-19")
+    assert str(uid) in w.daily_hours([t], MON)
