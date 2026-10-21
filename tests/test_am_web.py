@@ -38,7 +38,8 @@ def test_generate_returns_blanks_and_pictures(client):
     assert "Scope Creep & Upsell Tracking" in body["blank"]
     assert "Kenno: 1 in progress (Fix header)" in body["data"]["this_week"]
     assert body["data"]["blockers"] == ["Stuck job (Kenno): Stuck"]
-    assert len(body["pictures"]) == 6                      # 3 matched people x (this week, next week)
+    assert len(body["pictures"]) == 3                      # one picture per matched person, for the chosen week only
+    assert all(set(p) == {"section", "person", "name", "url"} for p in body["pictures"])
     assert body["warnings"] and any("Nguyen Nguyen Thi My" in w for w in body["warnings"])   # roster name with no match
     for p in body["pictures"]:
         assert c.get(p["url"]).status_code == 200
@@ -46,11 +47,13 @@ def test_generate_returns_blanks_and_pictures(client):
     assert str(tmp) not in text and "@" not in text        # no server paths, no emails
 
 
-def test_idle_people_are_flagged_for_next_week(client):
+def test_idle_people_are_flagged_for_the_chosen_week(client):
     c, _ = client
-    body = gen(c).json()
-    assert "Thang Dam Quyet" in body["idle"]               # no hours next week
-    assert "Le Minh Tri" in body["idle"]                   # his task ends this Friday
+    this_week = gen(c, "2026-10-19").json()
+    assert "Thang Dam Quyet" in this_week["idle"] and "Vi Nguyen" in this_week["idle"]     # nothing planned for them
+    assert "Le Minh Tri" not in this_week["idle"]                                          # his task runs Mon-Fri
+    next_week = gen(c, "2026-10-26").json()
+    assert "Le Minh Tri" in next_week["idle"] and "Vi Nguyen" not in next_week["idle"]
 
 
 def test_not_configured_returns_503_and_writes_nothing(client, monkeypatch):

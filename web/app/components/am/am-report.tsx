@@ -12,6 +12,17 @@ const mondayOf = (d: Date) => {
   m.setDate(m.getDate() - ((m.getDay() + 6) % 7));
   return ymd(m);
 };
+const addDays = (monday: string, n: number) => {
+  const d = new Date(`${monday}T00:00`);
+  d.setDate(d.getDate() + n);
+  return ymd(d);
+};
+const rangeText = (monday: string) => {
+  const a = new Date(`${monday}T00:00`);
+  const f = new Date(`${addDays(monday, 4)}T00:00`);
+  const month = (d: Date) => d.toLocaleString("en-GB", { month: "short" });
+  return `${a.getDate()} ${a.getMonth() === f.getMonth() ? "" : month(a) + " "}– ${f.getDate()} ${month(f)}`.replace("  ", " ");
+};
 const fridayText = (monday: string) => {
   const f = new Date(`${monday}T00:00`);
   f.setDate(f.getDate() + 4);
@@ -41,14 +52,16 @@ function Pictures({ pictures, week }: { pictures: AmPicture[]; week: string }) {
       <Badge tone="sky">From SD Friday</Badge>
       {pictures.map((p) => (
         // eslint-disable-next-line @next/next/no-img-element
-        <img key={`${week}-${p.name}`} src={p.url} alt={`${p.person}, ${p.week} week`} className="w-full max-w-3xl rounded-[var(--radius-md)]" />
+        <img key={`${week}-${p.name}`} src={p.url} alt={`${p.person}: workload for ${rangeText(week)}`} className="w-full max-w-3xl rounded-[var(--radius-md)]" />
       ))}
     </div>
   );
 }
 
 export function AmReport() {
-  const [week, setWeek] = useState(() => mondayOf(new Date()));
+  const [which, setWhich] = useState<"this" | "next">("this");
+  const [thisMonday] = useState(() => mondayOf(new Date()));
+  const week = which === "this" ? thisMonday : addDays(thisMonday, 7);
   const [template, setTemplate] = useState<AmTemplate | null>(null);
   const [settings, setSettings] = useState<AmSettings | null>(null);
   const [data, setData] = useState<AmData>(EMPTY);
@@ -63,7 +76,7 @@ export function AmReport() {
       .then(([t, s]) => {
         setTemplate(t);
         setSettings(s);
-        setData((d) => ({ ...d, submitter: s.submitter, reviewer: s.reviewer, date_text: fridayText(week) }));
+        setData((d) => ({ ...d, submitter: s.submitter, reviewer: s.reviewer, date_text: fridayText(thisMonday) }));
       })
       .catch((e) => setError(e.message));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- load once
@@ -82,10 +95,10 @@ export function AmReport() {
   }
 
   // New week: the pictures belong to the old one, so drop them. The rest of the form is kept.
-  function changeWeek(monday: string) {
-    setWeek(monday);
+  function chooseWeek(next: "this" | "next") {
+    setWhich(next);
     setResult(null);
-    setData((d) => ({ ...d, dev_pictures: [], seo_pictures: [], date_text: fridayText(monday) }));
+    setData((d) => ({ ...d, dev_pictures: [], seo_pictures: [] }));
   }
 
   const fill = () =>
@@ -151,8 +164,25 @@ export function AmReport() {
         </p>
         <div className="flex flex-wrap items-end gap-4">
           <div>
-            <label htmlFor="am-week" className="label">Week (Monday to Friday)</label>
-            <input id="am-week" type="date" className="field" value={week} onChange={(e) => e.target.value && changeWeek(mondayOf(new Date(`${e.target.value}T00:00`)))} />
+            <span className="label" id="am-week-label">Week (Monday to Friday)</span>
+            <div role="radiogroup" aria-labelledby="am-week-label" className="inline-flex rounded-full border border-grey-200 bg-white p-1">
+              {(["this", "next"] as const).map((w) => {
+                const monday = w === "this" ? thisMonday : addDays(thisMonday, 7);
+                const on = which === w;
+                return (
+                  <button
+                    key={w}
+                    type="button"
+                    role="radio"
+                    aria-checked={on}
+                    onClick={() => chooseWeek(w)}
+                    className={`rounded-full px-5 py-2 font-semibold transition-colors ${on ? "bg-brand text-white" : "text-ink hover:bg-grey-100"}`}
+                  >
+                    {w === "this" ? "This week" : "Next week"} <span className={`text-sm font-normal ${on ? "text-white/80" : "text-grey-600"}`}>{rangeText(monday)}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
           <button type="button" onClick={fill} disabled={busy !== ""} className="btn btn-outline btn-lg">
             <Wand2 size={18} />
@@ -168,7 +198,7 @@ export function AmReport() {
       {result?.warnings.map((w) => (
         <Alert key={w} tone="info">{w}</Alert>
       ))}
-      {result && result.idle.length > 0 && <Alert tone="info">No hours planned next week for: {result.idle.join(", ")}.</Alert>}
+      {result && result.idle.length > 0 && <Alert tone="info">No hours planned for {rangeText(week)} for: {result.idle.join(", ")}.</Alert>}
 
       {template && (
         <Card title="Report" i={1}>

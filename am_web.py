@@ -91,22 +91,21 @@ def generate(body: GenerateIn):
     for stale in glob.glob(os.path.join(folder, "*.png")):
         os.remove(stale)
     version = time.time_ns()                  # new picture URLs on every run, so the browser never shows a stale PNG
-    weeks = {"this": monday, "next": monday + dt.timedelta(days=7)}
-    hours = {k: workload.daily_hours(tasks, d) for k, d in weeks.items()}
+    days_of = workload.daily_hours(tasks, monday)
+    label = f"{monday.day}–{(monday + dt.timedelta(days=4)).strftime('%d %b')}"      # e.g. 19–23 Oct
     names = {"dev_pictures": [], "seo_pictures": []}
     pictures, warnings, idle = [], [], []
     for section, key, roster in (("dev", "dev_pictures", settings["dev_roster"]), ("seo", "seo_pictures", settings["seo_roster"])):
         matched, missing = am_bullets.match_roster(roster, people)
         warnings += [f"{n} was not found in SD Friday, so there is no picture for them." for n in missing]
         for i, person in enumerate(matched, 1):
-            for which, label in (("this", "this week"), ("next", "next week")):
-                days = hours[which].get(person["id"]) or {weeks[which] + dt.timedelta(days=n): 0.0 for n in range(5)}
-                fname = f"{section}-{i}-{which}.png"
-                workload_pic.render_row(person["name"], person["expected_hours"], days, os.path.join(folder, fname), caption=label)
-                names[key].append(fname)
-                pictures.append({"section": section, "person": person["name"], "week": which, "name": fname,
-                                 "url": f"/api/am-report/pictures/{monday.isoformat()}/{fname}?v={version}"})
-            if not hours["next"].get(person["id"]):
+            days = days_of.get(person["id"]) or {monday + dt.timedelta(days=n): 0.0 for n in range(5)}
+            fname = f"{section}-{i}.png"
+            workload_pic.render_row(person["name"], person["expected_hours"], days, os.path.join(folder, fname), caption=label)
+            names[key].append(fname)
+            pictures.append({"section": section, "person": person["name"], "name": fname,
+                             "url": f"/api/am-report/pictures/{monday.isoformat()}/{fname}?v={version}"})
+            if not days_of.get(person["id"]):
                 idle.append(person["name"])
     last_week, this_week = am_bullets.client_bullets(tasks, projects, monday)
     data = {"submitter": settings["submitter"], "reviewer": settings["reviewer"],
