@@ -16,7 +16,7 @@ export function Setup({ config, hasReport, onBack, onStart }: { config: Config; 
   const [tab, setTab] = useState(config.seo_sheet_tab);
   const [tabs, setTabs] = useState<string[] | null>(null);
   const [tabsError, setTabsError] = useState("");
-  const [picked, setPicked] = useState<string[]>(config.clients.map((c) => c.name));
+  const [picked, setPicked] = useState<string[]>([]);
   const [voice, setVoice] = useState<Voice | null>(null);
   const [styleId, setStyleId] = useState("");
   const [error, setError] = useState("");
@@ -200,7 +200,7 @@ export function Setup({ config, hasReport, onBack, onStart }: { config: Config; 
         <div className="lg:col-span-7">
           <Card title="Clients" n={4} i={3} aside={<span className="text-sm font-semibold text-grey-600">{picked.length} of {config.clients.length}</span>}>
             <ClientPicker clients={config.clients} picked={picked} onChange={setPicked} />
-            <p className="mt-3 text-sm text-grey-600">All clients start included. Click a client to drop it or add it back.</p>
+            <p className="mt-3 text-sm text-grey-600">Click a client to include it in the report.</p>
             {picked.length === 0 && (
               <div className="mt-5 flex flex-col items-center gap-3 rounded-[var(--radius-md)] border border-dashed border-grey-200 px-6 py-8 text-center">
                 <Users size={28} className="text-grey-400" />
