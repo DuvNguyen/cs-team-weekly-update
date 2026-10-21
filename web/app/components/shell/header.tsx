@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, MessageSquareText, Settings } from "lucide-react";
+import { FileText, LogOut, MessageSquareText, Settings } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -10,7 +10,7 @@ import { Stepper } from "../report/stepper";
 
 /* One line: wordmark on the left; steps, Voice rules and the account on the right. */
 /* Avatar button with a dropdown: who is signed in, Settings, Sign out. */
-function AccountMenu({ me, onVoice, onSettings, onSignOut }: { me: Me; onVoice: boolean; onSettings: () => void; onSignOut: () => void }) {
+function AccountMenu({ me, onVoice, onAm, onSettings, onSignOut }: { me: Me; onVoice: boolean; onAm: boolean; onSettings: () => void; onSignOut: () => void }) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
 
@@ -47,6 +47,10 @@ function AccountMenu({ me, onVoice, onSettings, onSignOut }: { me: Me; onVoice: 
             <MessageSquareText size={14} />
             Voice rules
           </Link>
+          <Link role="menuitem" href="/am-report" aria-current={onAm ? "page" : undefined} className={`${item} !no-underline ${onAm ? "bg-brand-050" : ""}`} onClick={() => setOpen(false)}>
+            <FileText size={14} />
+            AM report
+          </Link>
           <button role="menuitem" type="button" className={item} onClick={() => (setOpen(false), onSettings())}>
             <Settings size={14} />
             Settings
@@ -67,6 +71,7 @@ export function Header({ me, signedOut, job, onSignOut, onSettings }: { me: Me |
   const path = usePathname();
   const step = path.startsWith("/setup") ? 1 : path.startsWith("/report") ? (job && isWorking(job) ? 2 : 3) : 0;
   const onVoice = path.startsWith("/voice");
+  const onAm = path.startsWith("/am-report");
 
   return (
     <header className="bg-navy">
@@ -78,7 +83,7 @@ export function Header({ me, signedOut, job, onSignOut, onSettings }: { me: Me |
           <>
             <Stepper step={step} hasReport={!!job} />
             <div className="flex justify-end">
-              {me && <AccountMenu me={me} onVoice={onVoice} onSettings={onSettings} onSignOut={onSignOut} />}
+              {me && <AccountMenu me={me} onVoice={onVoice} onAm={onAm} onSettings={onSettings} onSignOut={onSignOut} />}
             </div>
           </>
         )}

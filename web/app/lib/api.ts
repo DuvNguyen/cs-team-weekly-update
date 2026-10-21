@@ -45,6 +45,20 @@ export class ApiError extends Error {
   }
 }
 
+export type AmSettings = { submitter: string; reviewer: string; dev_roster: string[]; seo_roster: string[] };
+export type AmData = {
+  submitter: string;
+  reviewer: string;
+  date_text: string;
+  dev_pictures: string[];
+  seo_pictures: string[];
+  last_week: string[];
+  this_week: string[];
+  blockers: string[];
+};
+export type AmPicture = { section: "dev" | "seo"; person: string; week: "this" | "next"; name: string; url: string };
+export type AmResult = { week_start: string; data: AmData; pictures: AmPicture[]; blank: string[]; warnings: string[]; idle: string[] };
+
 export type Settings = { client_secret: boolean; gemini_key: string };
 
 export type Me = { email: string; name: string; picture: string; demo: boolean };
@@ -110,6 +124,30 @@ export const api = {
     a.click();
     URL.revokeObjectURL(url);
     return name;
+  },
+  amSettings: () => call<AmSettings>("/api/am-report/settings"),
+  saveAmSettings: (v: AmSettings) => call<AmSettings>("/api/am-report/settings", send("PUT", v)),
+  amGenerate: (week: string) => call<AmResult>("/api/am-report/generate", send("POST", { week })),
+  amExport: async (week_start: string, data: AmData) => {
+    const res = await fetch("/api/am-report/export", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ week_start, data }),
+    });
+    if (!res.ok) {
+      let detail = res.statusText;
+      try {
+        detail = (await res.json()).detail ?? detail;
+      } catch {}
+      throw new Error(detail);
+    }
+    const name = /filename\*?=(?:utf-8'')?"?([^";]+)"?/i.exec(res.headers.get("content-disposition") ?? "")?.[1];
+    const url = URL.createObjectURL(await res.blob());
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name ? decodeURIComponent(name) : "Account Manager Report.docx";
+    a.click();
+    URL.revokeObjectURL(url);
   },
   chartUrl: (id: string, name: string) => `/api/jobs/${id}/chart/${encodeURIComponent(name)}`,
 };
