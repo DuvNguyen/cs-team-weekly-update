@@ -22,7 +22,7 @@ def all_text(d):
 @pytest.fixture
 def pics(tmp_path):
     week = {MON + dt.timedelta(days=i): 5.0 for i in range(5)}
-    return [workload_pic.render_row(n, 7, week, str(tmp_path / f"{i}.png")) for i, n in enumerate("ABCDE")]
+    return [workload_pic.render_row(n, 7, {"This week": week}, str(tmp_path / f"{i}.png")) for i, n in enumerate("ABCDE")]
 
 
 @pytest.fixture

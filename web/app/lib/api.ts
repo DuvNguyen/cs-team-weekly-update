@@ -62,7 +62,7 @@ export type AmTemplate = {
   title: string;
   sections: { heading: string; subsections: { heading: string | null; objective: string; items: AmItem[] }[] }[];
 };
-export type AmPicture = { section: "dev" | "seo"; person: string; week: "this" | "next"; name: string; url: string };
+export type AmPicture = { section: "dev" | "seo"; person: string; name: string; url: string };
 export type AmResult = { week_start: string; data: AmData; pictures: AmPicture[]; blank: string[]; warnings: string[]; idle: string[] };
 
 export type Settings = { client_secret: boolean; gemini_key: string };
