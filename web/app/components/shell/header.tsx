@@ -67,15 +67,17 @@ export function Header({ me, signedOut, job, onSignOut, onSettings }: { me: Me |
 
   return (
     <header className="bg-navy">
-      <div className="mx-auto flex w-full max-w-[var(--container-max)] items-center justify-between gap-6 px-8 py-5">
+      <div className="mx-auto grid w-full max-w-[var(--container-max)] grid-cols-[1fr_auto_1fr] items-center gap-6 px-8 py-5">
         {/* Official wordmark, never redrawn */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/brand/wordmark-white.svg" alt="Saigon Digital" className="h-6 w-auto shrink-0" />
         {!signedOut && (
-          <div className="flex items-center gap-4">
+          <>
             <Stepper step={step} hasReport={!!job} />
-            {me && <AccountMenu me={me} onVoice={onVoice} onSettings={onSettings} onSignOut={onSignOut} />}
-          </div>
+            <div className="flex justify-end">
+              {me && <AccountMenu me={me} onVoice={onVoice} onSettings={onSettings} onSignOut={onSignOut} />}
+            </div>
+          </>
         )}
       </div>
     </header>
