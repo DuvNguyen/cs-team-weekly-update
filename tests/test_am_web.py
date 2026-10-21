@@ -125,3 +125,25 @@ def test_settings_round_trip(client):
     s["submitter"] = "Mimi"
     assert c.put("/api/am-report/settings", json=s).json()["submitter"] == "Mimi"
     assert c.put("/api/am-report/settings", json={**s, "submitter": ""}).status_code == 400
+
+
+def test_template_endpoint_lists_every_prompt(client):
+    c, _ = client
+    t = c.get("/api/am-report/template").json()
+    keys = [i["key"] for s in t["sections"] for sub in s["subsections"] for i in sub["items"]]
+    assert len(keys) == 12 and "scope_creep" in keys and t["title"].startswith("Account Manager")
+
+
+def test_export_carries_typed_answers(client):
+    c, _ = client
+    r = c.post("/api/am-report/export", json={"week_start": "2026-10-19", "data": {"answers": {"scope_creep": "Typed by hand"}}})
+    assert r.status_code == 200
+    assert "Typed by hand" in "\n".join(p.text for p in docx.Document(io.BytesIO(r.content)).paragraphs)
+
+
+def test_overlong_or_unknown_answers_are_rejected(client):
+    c, _ = client
+    big = {"answers": {"scope_creep": "x" * 6000}}
+    assert c.post("/api/am-report/export", json={"week_start": "2026-10-19", "data": big}).status_code == 400
+    odd = {"answers": {"not_a_prompt": "x"}}
+    assert c.post("/api/am-report/export", json={"week_start": "2026-10-19", "data": odd}).status_code == 400

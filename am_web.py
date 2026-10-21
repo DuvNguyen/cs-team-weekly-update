@@ -15,6 +15,7 @@ import am_bullets, am_docx, am_settings, sdf, workload, workload_pic
 from auth_web import require_user
 
 OUT_DIR = os.path.join("out", "am-report")
+MAX_ANSWER = 5000
 NAME_RE = re.compile(r"^[a-z0-9-]+\.png$")
 log = logging.getLogger("am_web")
 
@@ -30,6 +31,7 @@ class ReportData(BaseModel):
     last_week: list[str] = []
     this_week: list[str] = []
     blockers: list[str] = []
+    answers: dict[str, str] = {}           # typed answers by prompt key (see am_template.json)
 
 
 class GenerateIn(BaseModel):
@@ -50,6 +52,11 @@ def _monday(value: str) -> dt.date:
 
 def _folder(monday: dt.date) -> str:
     return os.path.join(OUT_DIR, monday.isoformat())
+
+
+@router.get("/template")
+def get_template():
+    return am_docx.load_template()
 
 
 @router.get("/settings")
@@ -123,6 +130,9 @@ def get_picture(week: str, name: str):
 def export(body: ExportIn):
     monday = _monday(body.week_start)
     data = body.data.model_dump()
+    keys = {i["key"] for sec in am_docx.load_template()["sections"] for sub in sec["subsections"] for i in sub["items"]}
+    if any(k not in keys or len(v) > MAX_ANSWER for k, v in data["answers"].items()):
+        raise HTTPException(400, f"Answers must belong to a report question and be under {MAX_ANSWER} characters.")
     for key in ("dev_pictures", "seo_pictures"):
         paths = []
         for name in data[key]:

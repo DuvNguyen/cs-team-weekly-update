@@ -121,22 +121,37 @@ def _signatures(doc, template) -> None:
         _run(cell.add_paragraph(), "Date: ", colour=GREY)
 
 
-def _filled(item: dict, data: dict) -> bool:
+def load_template() -> dict:
+    return json.load(open(TEMPLATE, encoding="utf-8"))
+
+
+def _typed(item: dict, data: dict) -> list[str]:
+    """Lines the user typed for this prompt (data["answers"][key])."""
+    text = _clean((data.get("answers") or {}).get(item["key"], ""))
+    return [line.strip() for line in text.splitlines() if line.strip()]
+
+
+def _auto(item: dict, data: dict) -> bool:
+    """Is there fetched content (bullets or pictures) for this prompt?"""
     answer = item["answer"]
     if answer == "client_lists":
         return bool(data.get("last_week") or data.get("this_week"))
     return bool(data.get(answer)) if answer in ("dev_pictures", "seo_pictures", "blockers") else False
 
 
+def _filled(item: dict, data: dict) -> bool:
+    return _auto(item, data) or bool(_typed(item, data))
+
+
 def blank_prompts(data: dict) -> list[str]:
     """Labels of the prompts this data would leave blank (the build uses the same rule)."""
-    template = json.load(open(TEMPLATE, encoding="utf-8"))
+    template = load_template()
     return [i["label"] for s in template["sections"] for sub in s["subsections"] for i in sub["items"] if not _filled(i, data)]
 
 
 def build(out_path: str, data: dict) -> list[str]:
     """Write the report. Returns the labels of the prompts left blank."""
-    template = json.load(open(TEMPLATE, encoding="utf-8"))
+    template = load_template()
     doc = Document()
     _setup(doc)
     title = doc.add_paragraph(style="Title")
@@ -157,22 +172,23 @@ def build(out_path: str, data: dict) -> list[str]:
                 prompt.paragraph_format.keep_with_next = True
                 _run(prompt, item["label"], bold=True, colour=NAVY)
                 _run(prompt, f': {item["text"]}')
-                answer = item["answer"]
+                answer, typed = item["answer"], _typed(item, data)
                 if answer == "client_lists":
                     lists = [data.get("last_week") or [], data.get("this_week") or []]
                     for heading, lines in zip(item["lists"], lists):
-                        p = doc.add_paragraph()
-                        _run(p, heading, bold=True)
+                        _run(doc.add_paragraph(), heading, bold=True)
                         if lines:
                             _bullets(doc, lines)
-                        else:
+                        elif not typed:
                             _blank(doc, "List Bullet 2")
-                elif answer in ("dev_pictures", "seo_pictures"):
-                    _pictures(doc, data[answer]) if data.get(answer) else _blank(doc)
-                elif answer == "blockers":
-                    _bullets(doc, data["blockers"]) if data.get("blockers") else _blank(doc)
-                else:
+                elif answer in ("dev_pictures", "seo_pictures") and data.get(answer):
+                    _pictures(doc, data[answer])
+                elif answer == "blockers" and data.get("blockers"):
+                    _bullets(doc, data["blockers"])
+                elif not typed:
                     _blank(doc)
+                for line in typed:
+                    doc.add_paragraph().add_run(line)
                 if not _filled(item, data):
                     blanks.append(item["label"])
     _signatures(doc, template)

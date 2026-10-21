@@ -115,3 +115,29 @@ def test_odd_and_long_text_is_safe(tmp_path, full):
     full["submitter"] = "Nguyễn & <Co>"
     d, _ = build(tmp_path, full)
     assert "x" * 500 in all_text(d) and "\x00" not in all_text(d)
+
+
+def test_typed_answer_is_written_and_is_not_blank(tmp_path):
+    data = {"answers": {"scope_creep": "CRCC banner is out of scope.\nPIC to confirm.", "blockers": "None"}}
+    d, blanks = build(tmp_path, data)
+    text = paragraphs_text(d)
+    assert "CRCC banner is out of scope." in text and "PIC to confirm." in text and "None" in text
+    assert "Scope Creep & Upsell Tracking" not in blanks and "Blocker Resolution" not in blanks
+    assert "Cross-Department Handovers" in blanks
+
+
+def test_typed_answer_sits_under_its_own_prompt(tmp_path):
+    d, _ = build(tmp_path, {"answers": {"handovers": "All delivered."}})
+    order = [t for t, _ in body_order(d)]
+    assert order.index("All delivered.") == next(i for i, t in enumerate(order) if t.startswith("Cross-Department Handovers")) + 1
+
+
+def test_typed_answer_works_beside_automatic_content(tmp_path, full):
+    full["answers"] = {"task_delegation": "Everyone has 3 days mapped."}
+    d, blanks = build(tmp_path, full)
+    assert "Everyone has 3 days mapped." in paragraphs_text(d) and "Task Delegation Audit" not in blanks
+
+
+def test_whitespace_only_or_unknown_answers_do_not_count(tmp_path):
+    d, blanks = build(tmp_path, {"answers": {"scope_creep": "  \n ", "no_such_prompt": "x"}})
+    assert "Scope Creep & Upsell Tracking" in blanks and "x" not in paragraphs_text(d)
