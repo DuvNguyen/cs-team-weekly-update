@@ -40,7 +40,7 @@ function Lines({ label, value, onChange, auto }: { label: string; value: string[
         {label}
         {auto && <Badge tone="sky">From SD Friday</Badge>}
       </label>
-      <textarea className="field min-h-24" value={text} onChange={(e) => (setText(e.target.value), onChange(lines(e.target.value)))} />
+      <textarea className="field min-h-48 max-h-[70vh] [field-sizing:content]" value={text} onChange={(e) => (setText(e.target.value), onChange(lines(e.target.value)))} />
     </div>
   );
 }
@@ -142,7 +142,7 @@ export function AmReport() {
           <>
             {section && result && <Pictures pictures={result.pictures.filter((p) => p.section === section)} week={result.week_start} />}
             <textarea
-              className="field min-h-20"
+              className="field min-h-32 max-h-[70vh] [field-sizing:content]"
               aria-label={`${item.label} answer`}
               placeholder={section ? "Notes (optional)" : "Type your answer"}
               value={data.answers[item.key] ?? ""}
