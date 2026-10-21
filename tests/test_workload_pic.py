@@ -43,3 +43,7 @@ def test_zero_or_missing_expected_hours_does_not_crash(tmp_path):
 
 def test_odd_names_do_not_crash(tmp_path):
     pic.render_row("Nguyễn Thị $x$ & <b> " + "n" * 80, 7, week(1, 1, 1, 1, 1), str(tmp_path / "c.png"))
+
+
+def test_caption_is_accepted(tmp_path):
+    pic.render_row("Le Minh Tri", 4, week(1, 2, 3, 4, 5), str(tmp_path / "c.png"), caption="next week")

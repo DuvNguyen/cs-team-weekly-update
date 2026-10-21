@@ -121,6 +121,19 @@ def _signatures(doc, template) -> None:
         _run(cell.add_paragraph(), "Date: ", colour=GREY)
 
 
+def _filled(item: dict, data: dict) -> bool:
+    answer = item["answer"]
+    if answer == "client_lists":
+        return bool(data.get("last_week") or data.get("this_week"))
+    return bool(data.get(answer)) if answer in ("dev_pictures", "seo_pictures", "blockers") else False
+
+
+def blank_prompts(data: dict) -> list[str]:
+    """Labels of the prompts this data would leave blank (the build uses the same rule)."""
+    template = json.load(open(TEMPLATE, encoding="utf-8"))
+    return [i["label"] for s in template["sections"] for sub in s["subsections"] for i in sub["items"] if not _filled(i, data)]
+
+
 def build(out_path: str, data: dict) -> list[str]:
     """Write the report. Returns the labels of the prompts left blank."""
     template = json.load(open(TEMPLATE, encoding="utf-8"))
@@ -154,17 +167,13 @@ def build(out_path: str, data: dict) -> list[str]:
                             _bullets(doc, lines)
                         else:
                             _blank(doc, "List Bullet 2")
-                    filled = any(lists)
                 elif answer in ("dev_pictures", "seo_pictures"):
-                    filled = bool(data.get(answer))
-                    _pictures(doc, data.get(answer) or []) if filled else _blank(doc)
+                    _pictures(doc, data[answer]) if data.get(answer) else _blank(doc)
                 elif answer == "blockers":
-                    filled = bool(data.get("blockers"))
-                    _bullets(doc, data["blockers"]) if filled else _blank(doc)
+                    _bullets(doc, data["blockers"]) if data.get("blockers") else _blank(doc)
                 else:
-                    filled = False
                     _blank(doc)
-                if not filled:
+                if not _filled(item, data):
                     blanks.append(item["label"])
     _signatures(doc, template)
     os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)

@@ -30,7 +30,7 @@ def _plain(text: str, limit: int = 34) -> str:
     return text if len(text) <= limit else text[: limit - 1] + "…"
 
 
-def render_row(name: str, expected: float | None, week: dict[dt.date, float], out_path: str) -> str:
+def render_row(name: str, expected: float | None, week: dict[dt.date, float], out_path: str, caption: str = "") -> str:
     fig = plt.figure(figsize=(WIDTH / DPI, HEIGHT / DPI), dpi=DPI, facecolor=BG)
     ax = fig.add_axes((0, 0, 1, 1))
     ax.set_xlim(0, WIDTH)
@@ -38,7 +38,7 @@ def render_row(name: str, expected: float | None, week: dict[dt.date, float], ou
     ax.axis("off")
     mid = HEIGHT / 2
     ax.text(22, mid + 8, _plain(name), color=TEXT, fontsize=11, fontweight="bold", va="center", ha="left")
-    ax.text(22, mid - 10, f"{expected or 7:g}h/day expected", color=MUTED, fontsize=8.5, va="center", ha="left")
+    ax.text(22, mid - 10, f"{expected or 7:g}h/day expected" + (f"  ·  {_plain(caption, 20)}" if caption else ""), color=MUTED, fontsize=8.5, va="center", ha="left")
     for i, hours in enumerate(h for _, h in sorted(week.items())):
         status = bubble_status(hours, expected)
         if status == "none":
