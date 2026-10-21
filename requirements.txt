@@ -7,5 +7,5 @@ python-docx==1.2.0
 python-dotenv==1.2.4
 fastapi==0.156.4
 uvicorn==0.54.0
-httpx2
-psycopg[binary]
+httpx2==2.16.0
+psycopg[binary]==3.3.6
