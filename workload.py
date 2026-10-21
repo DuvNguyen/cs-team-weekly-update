@@ -15,7 +15,7 @@ def monday_of(d: dt.date) -> dt.date:
     return d - dt.timedelta(days=d.weekday())
 
 
-def _day(v) -> dt.date | None:
+def day_of(v) -> dt.date | None:
     if v is None or v == "":
         return None
     if isinstance(v, str):
@@ -48,7 +48,7 @@ def _instances(t: dict):
     if t.get("publisher_id"):
         rows.append((t["publisher_id"], "publish", t.get("publish_estimation") or min(est * 0.1, 0.25), tracked("publish_time_tracked")))
     for person, phase, estimate, done in rows:
-        start, due = _day(t.get(f"{phase}_start_date")), _day(t.get(f"{phase}_due_date"))
+        start, due = day_of(t.get(f"{phase}_start_date")), day_of(t.get(f"{phase}_due_date"))
         start, end = start or due, due or start
         if start and end:
             yield person, start, end, max(0, estimate - done)
