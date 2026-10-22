@@ -94,6 +94,11 @@ export function ClientCard(props: {
             <p className="line-clamp-6 flex-1 whitespace-pre-line leading-relaxed text-grey-600">{text}</p>
             <div className="mt-3 flex flex-wrap items-center gap-3">
               <Badge tone={c.ready ? "green" : "amber"}>{c.parts_reviewed} of {c.parts_total} parts reviewed</Badge>
+              {c.trends_note && (
+                <span title={c.trends_note}>
+                  <Badge>No SEO trends/news</Badge>
+                </span>
+              )}
               <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand">
                 <Pencil size={14} />
                 Open to review, edit or regenerate

@@ -38,3 +38,12 @@ def test_names_match_without_caring_about_case_and_missing_cells_are_empty():
 def test_long_runs_of_blank_lines_are_collapsed():
     rows = [["Project", "SEO Trends/News"], ["ABCIS", "a\n\n\n\n\nb"]]
     assert updates.match_trends(rows, "ABCIS") == "a\n\nb"
+
+
+def test_the_status_says_why_there_are_no_trends():
+    assert updates.trends_status(ROWS, "ABCIS")[1] == "found" and updates.trends_status(ROWS, "ABCIS")[0].startswith("Competitor")
+    assert updates.trends_status(ROWS, "TSS") == ("", "empty")             # the cell is blank
+    assert updates.trends_status(ROWS, "VALO") == ("", "empty")            # the row ends before the column
+    assert updates.trends_status(ROWS, "Nobody") == ("", "no_row")
+    assert updates.trends_status([["Project", "October"], ["ABCIS", "x"]], "ABCIS") == ("", "no_column")
+    assert updates.trends_status([], "ABCIS") == ("", "no_column")

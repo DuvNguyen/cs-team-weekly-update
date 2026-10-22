@@ -28,6 +28,7 @@ export type ClientRow = {
   totals: Totals | null;
   prev_totals: Totals | null;
   body: string;
+  trends_note: string;   // why there is no SEO trends / news part ('' when there is one)
   parts: Part[];
   parts_reviewed: number;
   parts_total: number;

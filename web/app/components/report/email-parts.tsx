@@ -170,6 +170,7 @@ export function EmailParts({ job, c, onChanged }: { job: Job; c: ClientRow; onCh
       <p className="text-sm text-grey-600">Read each part. <strong>Confirm</strong> what is right, <strong>Edit</strong> what isn&rsquo;t, <strong>Delete</strong> what you don&rsquo;t want. The tags show where each part comes from.</p>
       {error && <Alert>{error}</Alert>}
       {note && <Alert tone="info">{note}</Alert>}
+      {c.trends_note && <Alert tone="info">{c.trends_note}</Alert>}
       <ol className="space-y-3">
         {c.parts.map((p) => (
           <PartCard key={`${p.id}-${p.text.length}-${p.status}`} part={p} busy={busy} onPatch={(b) => patch(p, b)} />

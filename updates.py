@@ -26,14 +26,18 @@ def trends_column(rows: list) -> int | None:
                 return i
     return None
 
-def match_trends(rows: list, client_name: str) -> str:
-    """The client's SEO trends / news cell, as written (trimmed). '' when there is no such column, row or text."""
+def trends_status(rows: list, client_name: str) -> tuple[str, str]:
+    """(text, status) for the client's SEO trends / news: found, empty (blank cell), no_row, or no_column. Text is as written, trimmed."""
     col = trends_column(rows)
-    target = client_name.strip().lower()
     if col is None:
-        return ""
+        return "", "no_column"
+    target = client_name.strip().lower()
     for row in rows:
         if row and str(row[0]).strip().lower() == target:
             text = str(row[col]) if len(row) > col else ""
-            return re.sub(r"\n{3,}", "\n\n", "\n".join(line.rstrip() for line in text.strip().splitlines()))
-    return ""
+            text = re.sub(r"\n{3,}", "\n\n", "\n".join(line.rstrip() for line in text.strip().splitlines()))
+            return (text, "found") if text else ("", "empty")
+    return "", "no_row"
+
+def match_trends(rows: list, client_name: str) -> str:
+    return trends_status(rows, client_name)[0]

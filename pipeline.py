@@ -256,14 +256,17 @@ def generate_client(job: dict, c: dict, config: dict, svc) -> None:
         this_week, next_week = updates.match(job["_rows"], key)
         this_week, next_week = cfg.get("this_week", this_week), cfg.get("next_week", next_week)
         this_week, next_week = clean_notes(this_week), clean_notes(next_week)
-        sheet_trends = cfg.get("trends", updates.match_trends(job["_rows"], key))      # the sheet's "SEO Trends/News" cell
+        sheet_trends, trends_status = updates.trends_status(job["_rows"], key) if job["_rows"] else ("", "no_sheet")    # the sheet's "SEO Trends/News" cell
+        if "trends" in cfg:                                                            # a hand-written override in config.json
+            sheet_trends = cfg["trends"]
+            trends_status = "found" if sheet_trends else "empty"
         if DEMO:
             seed = sum(map(ord, c["name"]))
             series, prev = _demo_series(seed, start, end), _demo_series(seed + 1, pstart, pend)
             summary = (f"Demo summary for {c['name']} in the style “{style['name']}”: clicks and impressions moved against the previous "
                        "period while our average position held steady. Next, our focus is on the content queue.")
             this_week = this_week or "Published two blog posts."
-            sheet_trends = sheet_trends or "Demo trend: a competitor launched a new campaign."
+            sheet_trends, trends_status = sheet_trends or "Demo trend: a competitor launched a new campaign.", "found"
             next_week = next_week or "Refresh the top landing pages."
         else:
             with _api_lock:
@@ -278,7 +281,7 @@ def generate_client(job: dict, c: dict, config: dict, svc) -> None:
                 summary = _generate(svc["gemini"], prompt, as_json=voice_store.has_structure(style))
         trend, sources = job["_trends"].get(c["category"], ("", []))
         ctx = job.setdefault("_ctx", {})[c["name"]] = dict(series=series, prev=prev, this_week=this_week,
-                                                            next_week=next_week, trend=trend, sources=sources, trends=sheet_trends)
+                                                            next_week=next_week, trend=trend, sources=sources, trends=sheet_trends, trends_status=trends_status)
         _assemble(config, cfg, c, summary, ctx)
         c["totals"], c["prev_totals"] = series["totals"], prev["totals"]
         c["has_chart"], c["status"] = True, "ok"
@@ -317,12 +320,20 @@ def confirm_all_parts(job: dict, name: str) -> dict:
     return {"client": client_view(job, c), "confirmed": len(done), "needs_checking": len(skipped)}
 
 
+TRENDS_NOTES = {
+    "empty": 'The SEO sheet has nothing in the "SEO Trends/News" column for this client, so there is no trends part.',
+    "no_column": 'The selected sheet tab has no "SEO Trends/News" column, so there is no trends part.',
+    "no_row": "This client has no row in the selected sheet tab, so there are no notes or trends for it.",
+    "no_sheet": "No SEO sheet tab was read (none chosen, or it could not be opened), so there are no notes or trends for this client.",
+}
+
+
 def client_view(job: dict, c: dict) -> dict:
     """A client for the browser: its parts carry the provenance check, recomputed from the current text."""
     ctx = job.get("_ctx", {}).get(c["name"]) or {}
     parts = [{**p, "check": provenance.check_part(p, ctx)} for p in c.get("parts", [])]
     done, total = email_parts.reviewed_count(c.get("parts", []))
-    return {**c, "parts": parts, "parts_reviewed": done, "parts_total": total, "ready": email_parts.ready(c.get("parts", [])) if parts else True}
+    return {**c, "trends_note": TRENDS_NOTES.get(ctx.get("trends_status"), ""), "parts": parts, "parts_reviewed": done, "parts_total": total, "ready": email_parts.ready(c.get("parts", [])) if parts else True}
 
 
 def _chosen(job: dict) -> list:

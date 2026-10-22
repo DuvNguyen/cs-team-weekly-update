@@ -126,3 +126,17 @@ def test_the_sheets_trends_show_up_for_review_and_only_join_the_email_when_confi
     assert api.post(f"/api/jobs/{job['id']}/export").status_code == 200       # exported without the trends
     c = patch(api, job, t, status="confirmed").json()
     assert t["text"] in c["body"]
+
+
+@pytest.mark.parametrize("status, expected", [
+    ("empty", 'nothing in the "SEO Trends/News" column'),
+    ("no_column", 'no "SEO Trends/News" column'),
+    ("no_row", "no row in the selected sheet tab"),
+    ("no_sheet", "No SEO sheet tab was read"),
+])
+def test_the_client_says_why_it_has_no_trends(api, status, expected):
+    job = ready_job(api)
+    assert job["clients"][0]["trends_note"] == ""                           # demo data has trends: nothing to say
+    pipeline.JOBS[job["id"]]["_ctx"]["Alpha"]["trends_status"] = status
+    note = api.get(f"/api/jobs/{job['id']}").json()["clients"][0]["trends_note"]
+    assert expected in note
