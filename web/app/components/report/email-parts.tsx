@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Pencil, Save, Trash2, Undo2 } from "lucide-react";
+import { Check, CheckCheck, Pencil, Save, Trash2, Undo2 } from "lucide-react";
 import { useState } from "react";
 import { api, type ClientRow, type Job, type Part } from "../../lib/api";
 import { Alert, Badge } from "../ui/feedback";
@@ -116,6 +116,24 @@ function PartCard({ part, busy, onPatch }: { part: Part; busy: boolean; onPatch:
 export function EmailParts({ job, c, onChanged }: { job: Job; c: ClientRow; onChanged: () => Promise<unknown> }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [note, setNote] = useState("");
+  // Parts "Confirm all" can confirm: still in review, and nothing flagged (or already edited by the person).
+  const confirmable = c.parts.filter((p) => p.status === "review" && (p.check.flags.length === 0 || p.edited)).length;
+
+  async function confirmAll() {
+    setBusy(true);
+    setError("");
+    setNote("");
+    try {
+      const r = await api.confirmAllParts(job.id, c.name);
+      await onChanged();
+      if (r.needs_checking > 0) setNote(`Confirmed ${r.confirmed} part${r.confirmed === 1 ? "" : "s"}. ${r.needs_checking} still need${r.needs_checking === 1 ? "s" : ""} checking: edit ${r.needs_checking === 1 ? "it" : "them"} so it matches the sources, or delete ${r.needs_checking === 1 ? "it" : "them"}.`);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function patch(part: Part, b: { title?: string; text?: string; status?: Part["status"] }) {
     setBusy(true);
@@ -134,10 +152,22 @@ export function EmailParts({ job, c, onChanged }: { job: Job; c: ClientRow; onCh
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="label !mb-0">Email to the client, part by part</span>
-        <span className="text-sm text-grey-600">{c.parts_reviewed} of {c.parts_total} parts reviewed</span>
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-sm text-grey-600">{c.parts_reviewed} of {c.parts_total} parts reviewed</span>
+          <button
+            type="button"
+            onClick={confirmAll}
+            disabled={busy || confirmable === 0}
+            title="Confirms every part that has nothing flagged. Flagged parts stay for you to edit or delete."
+            className="btn btn-primary !px-3 !py-1 text-sm !text-white"
+          >
+            <CheckCheck size={14} /> {confirmable > 0 ? `Confirm all (${confirmable})` : "Confirm all"}
+          </button>
+        </div>
       </div>
       <p className="text-sm text-grey-600">Read each part. <strong>Confirm</strong> what is right, <strong>Edit</strong> what isn&rsquo;t, <strong>Delete</strong> what you don&rsquo;t want. The tags show where each part comes from.</p>
       {error && <Alert>{error}</Alert>}
+      {note && <Alert tone="info">{note}</Alert>}
       <ol className="space-y-3">
         {c.parts.map((p) => (
           <PartCard key={`${p.id}-${p.text.length}-${p.status}`} part={p} busy={busy} onPatch={(b) => patch(p, b)} />

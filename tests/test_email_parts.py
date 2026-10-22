@@ -105,3 +105,28 @@ def test_ready_means_every_part_confirmed_or_deleted_and_at_least_one_confirmed(
     assert ep.ready(parts) and ep.reviewed_count(parts) == (3, 3)
     ep.update_part(parts, parts[1]["id"], {"text": "y"}, CTX)
     assert not ep.ready(parts) and ep.reviewed_count(parts) == (2, 3)
+
+
+def test_confirm_all_confirms_clean_parts_and_skips_the_flagged_ones():
+    parts = build([{"title": "A", "text": "Clicks rose to 1,240."}, {"title": "B", "text": "We improved site speed by 40%."}, {"title": "C", "text": "Our focus continues."}])
+    done, skipped = ep.confirm_all(parts, CTX)
+    assert len(done) == 2 and len(skipped) == 1
+    status = {p["title"]: p["status"] for p in parts if p["kind"] == "section"}
+    assert status == {"A": "confirmed", "B": "review", "C": "confirmed"}
+    assert not ep.ready(parts)                                # the flagged part still needs the person
+
+
+def test_confirm_all_confirms_a_flagged_part_the_person_has_edited_and_leaves_deleted_ones_alone():
+    parts = build([{"title": "A", "text": "We improved site speed by 40%."}, {"title": "B", "text": "x"}])
+    a, b = parts[1], parts[2]
+    ep.update_part(parts, a["id"], {"text": "We improved site speed by 40% (checked by dev)."}, CTX)
+    ep.update_part(parts, b["id"], {"status": "deleted"}, CTX)
+    done, skipped = ep.confirm_all(parts, CTX)
+    assert done == [a["id"]] and skipped == [] and b["status"] == "deleted"
+    assert ep.ready(parts)
+
+
+def test_confirm_all_with_nothing_to_confirm_is_harmless():
+    parts = build([{"title": "A", "text": "x"}])
+    ep.confirm_all(parts, CTX)
+    assert ep.confirm_all(parts, CTX) == ([], [])

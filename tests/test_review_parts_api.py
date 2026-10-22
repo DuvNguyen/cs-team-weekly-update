@@ -94,3 +94,21 @@ def test_the_check_is_recomputed_from_the_current_text(api):
     c = patch(api, job, sec, text="Clicks are up 99%.").json()
     chk = next(p for p in c["parts"] if p["id"] == sec["id"])["check"]
     assert chk["numbers"]["unmatched"] == ["99%"] and chk["flags"]
+
+
+def test_confirm_all_endpoint_confirms_the_clean_parts_and_reports_the_rest(api):
+    job = ready_job(api)
+    pipeline.JOBS[job["id"]]["clients"][0]["parts"][1]["text"] = "We improved site speed by 40%."      # one flagged part
+    r = api.post(f"/api/jobs/{job['id']}/clients/Alpha/parts/confirm-all")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["confirmed"] == 1 and body["needs_checking"] == 1          # the notes part is confirmed, the flagged one is not
+    assert body["client"]["ready"] is False
+    api.post(f"/api/jobs/{job['id']}/clients/Alpha/parts/confirm-all")      # pressing it again changes nothing
+    assert api.get(f"/api/jobs/{job['id']}").json()["clients"][0]["parts_reviewed"] == 3
+
+
+def test_confirm_all_makes_a_clean_client_ready(api):
+    job = ready_job(api)
+    body = api.post(f"/api/jobs/{job['id']}/clients/Alpha/parts/confirm-all").json()
+    assert body["needs_checking"] == 0 and body["client"]["ready"] is True

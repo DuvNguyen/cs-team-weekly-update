@@ -175,6 +175,16 @@ def patch_part(job_id: str, name: str, part_id: str, patch: PartPatch, user: dic
         raise HTTPException(409 if "not in the sources" in str(e) else 400, str(e))
 
 
+@api.post("/api/jobs/{job_id}/clients/{name}/parts/confirm-all")
+def confirm_all_parts(job_id: str, name: str, user: dict = Depends(require_user)):
+    job = _job(job_id, user)
+    _client(job, name)
+    try:
+        return pipeline.confirm_all_parts(job, name)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
 @api.post("/api/jobs/{job_id}/clients/{name}/retry")
 def retry(job_id: str, name: str, user: dict = Depends(require_user)):
     job = _job(job_id, user)

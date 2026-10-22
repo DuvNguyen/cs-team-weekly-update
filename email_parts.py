@@ -78,6 +78,21 @@ def update_part(parts: list[dict], part_id: str, patch: dict, ctx: dict) -> dict
     return part
 
 
+def confirm_all(parts: list[dict], ctx: dict) -> tuple[list[str], list[str]]:
+    """Confirm every part still in review that has nothing flagged (or that the person already edited).
+    Flagged parts are left for the person: (ids confirmed, ids that still need checking)."""
+    done, skipped = [], []
+    for part in parts:
+        if part["status"] != "review":
+            continue
+        if provenance.check_part(part, ctx)["flags"] and not part["edited"]:
+            skipped.append(part["id"])
+        else:
+            part["status"] = "confirmed"
+            done.append(part["id"])
+    return done, skipped
+
+
 def reviewed_count(parts: list[dict]) -> tuple[int, int]:
     return sum(p["status"] != "review" for p in parts), len(parts)
 

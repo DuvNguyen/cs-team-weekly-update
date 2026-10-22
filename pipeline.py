@@ -305,6 +305,16 @@ def update_client_part(job: dict, name: str, part_id: str, patch: dict) -> dict:
     return client_view(job, c)
 
 
+def confirm_all_parts(job: dict, name: str) -> dict:
+    """Confirm every unflagged part of a client's email. Flagged parts stay for the person to edit or delete."""
+    c = next(x for x in job["clients"] if x["name"] == name)
+    ctx = job.get("_ctx", {}).get(name)
+    if not c.get("parts") or not ctx:
+        raise ValueError("This email has no parts to review yet.")
+    done, skipped = email_parts.confirm_all(c["parts"], ctx)
+    return {"client": client_view(job, c), "confirmed": len(done), "needs_checking": len(skipped)}
+
+
 def client_view(job: dict, c: dict) -> dict:
     """A client for the browser: its parts carry the provenance check, recomputed from the current text."""
     ctx = job.get("_ctx", {}).get(c["name"]) or {}
