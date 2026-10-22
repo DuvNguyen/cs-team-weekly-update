@@ -95,8 +95,21 @@ def _upload_png(drive, png_path: str, folder_id: str) -> str:
     drive.permissions().create(fileId=file["id"], body={"type": "anyone", "role": "reader"}).execute()
     return f"https://drive.google.com/uc?export=view&id={file['id']}"
 
+def heading_ranges(text: str, headings: list) -> list:
+    """(start, end) of each heading where it sits alone on its line, searched in order. Headings not found are skipped."""
+    marks, pos = [], 0
+    for h in headings:
+        h = (h or "").strip()
+        if not h:
+            continue
+        m = re.compile(rf"(?m)^{re.escape(h)}$").search(text, pos)
+        if m:
+            marks.append((m.start(), m.end()))
+            pos = m.end()
+    return marks
+
 def append_client(docs, drive, doc_id: str, name: str, png_path: str, summary: str, folder_id: str,
-                  category: str = "") -> None:
+                  category: str = "", headings: tuple = ()) -> None:
     img_url = _upload_png(drive, png_path, folder_id)
     # end index of the doc body
     doc = docs.documents().get(documentId=doc_id).execute()
@@ -122,4 +135,7 @@ def append_client(docs, drive, doc_id: str, name: str, png_path: str, summary: s
             "range": {"startIndex": s, "endIndex": s + len(url)},
             "textStyle": {"link": {"url": url}},
             "fields": "link"}})
+    for a, b in heading_ranges(text, list(headings)):           # section headings in bold
+        reqs.append({"updateTextStyle": {"range": {"startIndex": end + a, "endIndex": end + b},
+                                         "textStyle": {"bold": True}, "fields": "bold"}})
     docs.documents().batchUpdate(documentId=doc_id, body={"requests": reqs}).execute()

@@ -327,6 +327,7 @@ def confirm_all_parts(job: dict, name: str) -> dict:
     if not c.get("parts") or not ctx:
         raise ValueError("This email has no parts to review yet.")
     done, warned = email_parts.confirm_all(c["parts"], ctx)
+    c["body"] = current_body(c)
     return {"client": client_view(job, c), "confirmed": len(done), "with_warnings": len(warned)}
 
 
@@ -339,12 +340,17 @@ TRENDS_NOTES = {
 }
 
 
+def current_body(c: dict) -> str:
+    """The client's email as text: rebuilt from its parts (so it can't go stale), or the hand-written body when there are none."""
+    return email_parts.compose_body(c["parts"]) if c.get("parts") else c.get("body", "")
+
+
 def client_view(job: dict, c: dict) -> dict:
     """A client for the browser: its parts carry the provenance check, recomputed from the current text."""
     ctx = job.get("_ctx", {}).get(c["name"]) or {}
     parts = [{**p, "check": provenance.check_part(p, ctx)} for p in c.get("parts", [])]
     done, total = email_parts.reviewed_count(c.get("parts", []))
-    return {**c, "trends_note": TRENDS_NOTES.get(ctx.get("trends_status"), ""), "parts": parts, "parts_reviewed": done, "parts_total": total, "ready": email_parts.ready(c.get("parts", [])) if parts else True}
+    return {**c, "body": current_body(c), "trends_note": TRENDS_NOTES.get(ctx.get("trends_status"), ""), "parts": parts, "parts_reviewed": done, "parts_total": total, "ready": email_parts.ready(c.get("parts", [])) if parts else True}
 
 
 def _chosen(job: dict) -> list:
@@ -374,8 +380,8 @@ def regenerate_client(job: dict, name: str, instruction: str, style_id: str | No
             prompt += f"\n\nExtra instruction from the account manager (follow it, keep the rules above): {instruction}"
         svc = services(config, job["_email"])
         with _api_lock:
-            summary = _generate(svc["gemini"], prompt)
-    c["body"] = _email(config, cfg, c, summary, ctx)
+            summary = _generate(svc["gemini"], prompt, as_json=voice_store.has_structure(style))
+    _assemble(config, cfg, c, summary, ctx)
 
 
 def chart_path(job: dict, name: str) -> str:
@@ -407,8 +413,9 @@ def publish(job: dict) -> str:
                 for i, c in enumerate(chosen, 1):
                     job["message"] = f"Adding {c['name']} ({i}/{len(chosen)})"
                     report.append_client(svc["docs"], svc["drive"], doc_id, c["name"],
-                                         chart_path(job, c["name"]), c["body"],
-                                         config["drive_folder_id"], c["category"])
+                                         chart_path(job, c["name"]), current_body(c),
+                                         config["drive_folder_id"], c["category"],
+                                         headings=tuple(p["title"] for p in email_parts.kept(c.get("parts", [])) if p["title"]))
             job["doc_url"] = report.doc_url(doc_id)
         job["status"], job["message"] = "done", "Report created."
         return job["doc_url"]
@@ -451,7 +458,7 @@ def _add_text_with_links(paragraph, line: str) -> None:
 def export_docx(job: dict) -> tuple:
     """Build the report as a Word file from the previews on screen. Returns (bytes, filename)."""
     from docx import Document
-    from docx.shared import Inches
+    from docx.shared import Inches, Pt
     chosen = _chosen(job)
     if not chosen:
         raise ValueError("Nothing to export yet: tick a client and confirm or delete every part of its email.")
@@ -464,8 +471,19 @@ def export_docx(job: dict) -> tuple:
         if c["category"]:
             doc.add_paragraph(c["category"])
         doc.add_picture(chart_path(job, c["name"]), width=Inches(6.3))
-        for line in c["body"].split("\n"):
-            _add_text_with_links(doc.add_paragraph(), line)
+        if c.get("parts"):
+            for part in email_parts.kept(c["parts"]):
+                if part["title"]:                                           # section heading in bold, kept with its text
+                    head = doc.add_paragraph()
+                    head.add_run(part["title"]).bold = True
+                    head.paragraph_format.space_before, head.paragraph_format.keep_with_next = Pt(10), True
+                for line in filter(str.strip, part["text"].split("\n")):
+                    para = doc.add_paragraph()
+                    para.paragraph_format.space_after = Pt(4)
+                    _add_text_with_links(para, line)
+        else:                                                               # an email written by hand before parts existed
+            for line in c["body"].split("\n"):
+                _add_text_with_links(doc.add_paragraph(), line)
     buf = io.BytesIO()
     doc.save(buf)
     return buf.getvalue(), f"SEO-Report_{job['start']}_to_{job['end']}.docx"

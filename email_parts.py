@@ -47,10 +47,14 @@ def build(greeting: str, sections: list[dict], ctx: dict, structured: bool, tren
     return parts
 
 
+def kept(parts: list[dict]) -> list[dict]:
+    """The parts that go into the email: not deleted, and optional ones only when confirmed."""
+    return [p for p in parts if p["status"] != "deleted" and (not p.get("optional") or p["status"] == "confirmed")]
+
+
 def compose_body(parts: list[dict]) -> str:
     """The email as text, without the deleted parts (the same layout the single text box used to hold)."""
-    kept = [p for p in parts if p["status"] != "deleted" and (not p.get("optional") or p["status"] == "confirmed")]
-    return "\n\n".join((f"{p['title']}\n{p['text']}" if p["title"] else p["text"]) for p in kept if p["text"] or p["title"])
+    return "\n\n".join((f"{p['title']}\n{p['text']}" if p["title"] else p["text"]) for p in kept(parts) if p["text"] or p["title"])
 
 
 def _find(parts: list[dict], part_id: str) -> dict:

@@ -161,3 +161,69 @@ def test_moving_the_greeting_or_off_the_ends_is_refused(api):
     sec = part(job, "section")
     assert api.post(f"/api/jobs/{job['id']}/clients/Alpha/parts/{sec['id']}/move", json={"direction": "up"}).status_code == 400
     assert api.post(f"/api/jobs/{job['id']}/clients/Alpha/parts/{sec['id']}/move", json={"direction": "left"}).status_code == 400
+
+
+def export_paragraphs(api, job):
+    import io
+    import docx
+    r = api.post(f"/api/jobs/{job['id']}/export")
+    assert r.status_code == 200
+    return docx.Document(io.BytesIO(r.content)).paragraphs
+
+
+def confirm_everything(api, job):
+    assert api.post(f"/api/jobs/{job['id']}/clients/Alpha/parts/confirm-all").status_code == 200
+
+
+def test_headings_are_bold_in_the_word_file_and_text_is_not(api):
+    job = ready_job(api)
+    confirm_everything(api, job)
+    paras = export_paragraphs(api, job)
+    bold = {p.text for p in paras if p.text and all(r.bold for r in p.runs)}
+    assert {"SEO team notes", "SEO trends / news"} <= bold                           # headings that the parts carry
+    assert "Hi Sarah," not in bold and not any(t.startswith("Demo summary") for t in bold)
+
+
+def test_the_word_file_has_no_empty_paragraphs_between_the_parts(api):
+    job = ready_job(api)
+    confirm_everything(api, job)
+    paras = export_paragraphs(api, job)
+    start = next(i for i, p in enumerate(paras) if p.text == "Hi Sarah,")
+    assert all(p.text.strip() for p in paras[start:])                                  # greeting to sign-off: no blank lines
+
+
+def test_the_word_file_follows_the_order_and_the_confirmed_trends_only(api):
+    job = ready_job(api)
+    for kind in ("section", "notes"):
+        patch(api, job, part(job, kind), status="confirmed")
+    texts = [p.text for p in export_paragraphs(api, job)]
+    assert "SEO trends / news" not in texts                                            # optional and not confirmed
+    api.post(f"/api/jobs/{job['id']}/clients/Alpha/parts/{part(job, 'notes')['id']}/move", json={"direction": "up"})
+    patch(api, job, part(job, "trends"), status="confirmed")
+    texts = [p.text for p in export_paragraphs(api, job)]
+    assert texts.index("SEO team notes") < texts.index(next(t for t in texts if t.startswith("Demo summary")))
+    assert "SEO trends / news" in texts
+
+
+def test_confirm_all_puts_the_confirmed_trends_into_the_email_text_everywhere(api):
+    job = ready_job(api)
+    trends = part(job, "trends")["text"]
+    assert trends not in job["clients"][0]["body"]
+    body = api.post(f"/api/jobs/{job['id']}/clients/Alpha/parts/confirm-all").json()["client"]["body"]
+    assert trends in body                                                       # the text shown on the card
+    assert trends in api.get(f"/api/jobs/{job['id']}").json()["clients"][0]["body"]
+    assert trends in pipeline.current_body(pipeline.JOBS[job["id"]]["clients"][0])   # what a Google Doc publish uses
+    assert trends in [p.text for p in export_paragraphs(api, job)]                  # what the Word file uses
+
+
+def test_regenerate_rebuilds_the_parts_and_resets_the_reviews(api):
+    job = ready_job(api)
+    patch(api, job, part(job, "section"), status="confirmed")
+    patch(api, job, part(job, "section"), text="My own wording.")
+    r = api.post(f"/api/jobs/{job['id']}/clients/Alpha/regenerate", json={"prompt": "shorter", "style_id": None})
+    assert r.status_code == 200, r.text
+    c = r.json()
+    assert [p["kind"] for p in c["parts"]] == ["greeting", "section", "notes", "trends", "signoff"]
+    assert "My own wording." not in c["body"] and "shorter" in c["body"]            # the demo text echoes the instruction
+    assert [p["status"] for p in c["parts"]] == ["confirmed", "review", "review", "review", "confirmed"]
+    assert c["parts_reviewed"] == 2 and not c["ready"]
