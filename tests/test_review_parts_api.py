@@ -72,14 +72,13 @@ def test_deleting_the_notes_part_removes_it_from_the_email(api):
     assert "SEO team notes" not in c["body"]
 
 
-def test_a_part_with_untraceable_details_cannot_be_confirmed_until_edited(api):
+def test_a_flagged_part_can_be_confirmed_on_purpose_and_still_shows_its_warning(api):
     job = ready_job(api)
     sec = part(job, "section")
     pipeline.JOBS[job["id"]]["clients"][0]["parts"][1]["text"] = "We improved site speed by 40%."      # as if Gemini had written it
-    r = patch(api, job, sec, status="confirmed")
-    assert r.status_code == 409 and "not in the sources" in r.json()["detail"]
-    assert patch(api, job, sec, text="We improved site speed by 40% (checked by dev).").status_code == 200
-    assert patch(api, job, sec, status="confirmed").status_code == 200
+    c = patch(api, job, sec, status="confirmed").json()
+    got = next(p for p in c["parts"] if p["id"] == sec["id"])
+    assert got["status"] == "confirmed" and got["check"]["flags"]
 
 
 def test_unknown_part_and_bad_status_are_rejected(api):
@@ -96,22 +95,22 @@ def test_the_check_is_recomputed_from_the_current_text(api):
     assert chk["numbers"]["unmatched"] == ["99%"] and chk["flags"]
 
 
-def test_confirm_all_endpoint_confirms_the_clean_parts_and_reports_the_rest(api):
+def test_confirm_all_endpoint_confirms_every_part_and_counts_the_warnings(api):
     job = ready_job(api)
     pipeline.JOBS[job["id"]]["clients"][0]["parts"][1]["text"] = "We improved site speed by 40%."      # one flagged part
     r = api.post(f"/api/jobs/{job['id']}/clients/Alpha/parts/confirm-all")
     assert r.status_code == 200
     body = r.json()
-    assert body["confirmed"] == 2 and body["needs_checking"] == 1          # notes and trends are confirmed, the flagged one is not
-    assert body["client"]["ready"] is False
-    api.post(f"/api/jobs/{job['id']}/clients/Alpha/parts/confirm-all")      # pressing it again changes nothing
-    assert api.get(f"/api/jobs/{job['id']}").json()["clients"][0]["parts_reviewed"] == 3
+    assert body["confirmed"] == 3 and body["with_warnings"] == 1            # section, notes and trends; one carries a warning
+    assert body["client"]["ready"] is True
+    again = api.post(f"/api/jobs/{job['id']}/clients/Alpha/parts/confirm-all").json()
+    assert again["confirmed"] == 0 and again["with_warnings"] == 0           # pressing it again changes nothing
 
 
 def test_confirm_all_makes_a_clean_client_ready(api):
     job = ready_job(api)
     body = api.post(f"/api/jobs/{job['id']}/clients/Alpha/parts/confirm-all").json()
-    assert body["needs_checking"] == 0 and body["client"]["ready"] is True
+    assert body["with_warnings"] == 0 and body["client"]["ready"] is True
 
 
 def test_the_sheets_trends_show_up_for_review_and_only_join_the_email_when_confirmed(api):

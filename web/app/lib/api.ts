@@ -142,7 +142,7 @@ export const api = {
   movePart: (id: string, name: string, partId: string, direction: "up" | "down") =>
     call<ClientRow>(`/api/jobs/${id}/clients/${encodeURIComponent(name)}/parts/${partId}/move`, send("POST", { direction })),
   confirmAllParts: (id: string, name: string) =>
-    call<{ client: ClientRow; confirmed: number; needs_checking: number }>(`/api/jobs/${id}/clients/${encodeURIComponent(name)}/parts/confirm-all`, send("POST")),
+    call<{ client: ClientRow; confirmed: number; with_warnings: number }>(`/api/jobs/${id}/clients/${encodeURIComponent(name)}/parts/confirm-all`, send("POST")),
   patch: (id: string, name: string, b: { body?: string; include?: boolean }) =>
     call<ClientRow>(`/api/jobs/${id}/clients/${encodeURIComponent(name)}`, send("PATCH", b)),
   retry: (id: string, name: string) =>

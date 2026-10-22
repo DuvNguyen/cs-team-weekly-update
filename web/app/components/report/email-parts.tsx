@@ -26,7 +26,7 @@ function PartCard({ part, busy, onPatch, onMove }: { part: Part; busy: boolean; 
   return (
     <li
       className={`rounded-[var(--radius-md)] border-l-4 bg-white p-4 shadow-[var(--shadow-xs)] ${deleted ? "opacity-60" : ""}`}
-      style={{ borderLeftColor: confirmed ? "#22c55e" : flagged ? "#d64545" : "#3165f5" }}
+      style={{ borderLeftColor: confirmed ? (flagged ? "#e0a800" : "#22c55e") : flagged ? "#d64545" : "#3165f5" }}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <strong className={deleted ? "line-through" : "text-indigo"}>{label}</strong>
@@ -41,7 +41,7 @@ function PartCard({ part, busy, onPatch, onMove }: { part: Part; busy: boolean; 
               </button>
             </span>
           )}
-          {confirmed ? <Badge tone="green">Confirmed</Badge> : deleted ? <Badge>Deleted</Badge> : part.optional ? <Badge>Not in the email</Badge> : <Badge tone={flagged ? "danger" : "blue"}>{flagged ? "Check this" : "Needs review"}</Badge>}
+          {confirmed ? <Badge tone={flagged ? "amber" : "green"}>{flagged ? "Confirmed with a warning" : "Confirmed"}</Badge> : deleted ? <Badge>Deleted</Badge> : part.optional ? <Badge>Not in the email</Badge> : <Badge tone={flagged ? "danger" : "blue"}>{flagged ? "Check this" : "Needs review"}</Badge>}
         </div>
       </div>
 
@@ -86,7 +86,8 @@ function PartCard({ part, busy, onPatch, onMove }: { part: Part; busy: boolean; 
           {flagged && (
             <Alert>
               {check.flags[0]}
-              {check.flags.length > 1 ? ` (and ${check.flags.length - 1} more)` : ""} Edit it so it matches the sources, or delete it.
+              {check.flags.length > 1 ? ` (and ${check.flags.length - 1} more)` : ""}{" "}
+              {confirmed ? "You confirmed it anyway. Check it before you send." : "Edit it so it matches the sources, delete it, or confirm it if you know it is right."}
             </Alert>
           )}
 
@@ -103,12 +104,12 @@ function PartCard({ part, busy, onPatch, onMove }: { part: Part; busy: boolean; 
                 {!confirmed && (
                   <button
                     type="button"
-                    disabled={busy || (flagged && !part.edited)}
-                    title={flagged && !part.edited ? "Edit this part first, or delete it" : ""}
+                    disabled={busy}
+                    title={flagged ? "Some details are not in the sources. Confirm only if you know they are right." : ""}
                     onClick={() => onPatch({ status: "confirmed" })}
                     className="btn btn-primary !px-3 !py-1 text-sm !text-white"
                   >
-                    <Check size={14} /> Confirm
+                    <Check size={14} /> {flagged ? "Confirm anyway" : "Confirm"}
                   </button>
                 )}
                 <button type="button" onClick={() => (setTitle(part.title), setText(part.text), setEditing(true))} className="btn btn-outline !px-3 !py-1 text-sm">
@@ -131,8 +132,8 @@ export function EmailParts({ job, c, onChanged }: { job: Job; c: ClientRow; onCh
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
-  // Parts "Confirm all" can confirm: still in review, and nothing flagged (or already edited by the person).
-  const confirmable = c.parts.filter((p) => p.status === "review" && (p.check.flags.length === 0 || p.edited)).length;
+  // Parts "Confirm all" will confirm: everything still in review (deleted parts stay deleted).
+  const confirmable = c.parts.filter((p) => p.status === "review").length;
 
   async function confirmAll() {
     setBusy(true);
@@ -141,7 +142,7 @@ export function EmailParts({ job, c, onChanged }: { job: Job; c: ClientRow; onCh
     try {
       const r = await api.confirmAllParts(job.id, c.name);
       await onChanged();
-      if (r.needs_checking > 0) setNote(`Confirmed ${r.confirmed} part${r.confirmed === 1 ? "" : "s"}. ${r.needs_checking} still need${r.needs_checking === 1 ? "s" : ""} checking: edit ${r.needs_checking === 1 ? "it" : "them"} so it matches the sources, or delete ${r.needs_checking === 1 ? "it" : "them"}.`);
+      if (r.with_warnings > 0) setNote(`Confirmed ${r.confirmed} part${r.confirmed === 1 ? "" : "s"}. ${r.with_warnings} of them ${r.with_warnings === 1 ? "has" : "have"} details that are not in the sources, marked with a warning. Check ${r.with_warnings === 1 ? "it" : "them"} before you send.`);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -185,7 +186,7 @@ export function EmailParts({ job, c, onChanged }: { job: Job; c: ClientRow; onCh
             type="button"
             onClick={confirmAll}
             disabled={busy || confirmable === 0}
-            title="Confirms every part that has nothing flagged. Flagged parts stay for you to edit or delete."
+            title="Confirms every part. Parts with details that are not in the sources are confirmed with a warning."
             className="btn btn-primary !px-3 !py-1 text-sm !text-white"
           >
             <CheckCheck size={14} /> {confirmable > 0 ? `Confirm all (${confirmable})` : "Confirm all"}

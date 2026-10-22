@@ -2,6 +2,7 @@ import json
 import pytest
 
 import email_parts as ep
+import provenance
 
 CTX = {"series": {"totals": {"clicks": 1240, "impressions": 38900, "ctr": "3.2%", "position": "6.8"}},
        "prev": {"totals": {"clicks": 1100, "impressions": 36000, "ctr": "3.1%", "position": "7.4"}},
@@ -70,14 +71,14 @@ def test_editing_a_part_marks_it_edited_and_asks_for_a_new_confirmation():
     assert sec["edited"] is True and sec["status"] == "review" and "this period" in ep.compose_body(parts)
 
 
-def test_a_flagged_part_cannot_be_confirmed_until_the_person_edits_it():
+def test_a_flagged_part_can_be_confirmed_on_purpose_and_its_warning_stays():
     parts = build([{"title": "A", "text": "We improved site speed by 40%."}])
     sec = parts[1]
-    with pytest.raises(ValueError, match="not in"):
-        ep.update_part(parts, sec["id"], {"status": "confirmed"}, CTX)
-    ep.update_part(parts, sec["id"], {"text": "We improved site speed by 40% (measured by our dev team)."}, CTX)
-    ep.update_part(parts, sec["id"], {"status": "confirmed"}, CTX)           # their edit means they vouch for it
+    ep.update_part(parts, sec["id"], {"status": "confirmed"}, CTX)       # the person decides it is right
     assert sec["status"] == "confirmed"
+    assert provenance.check_part(sec, CTX)["flags"]                      # but the warning is still on record
+    ep.update_part(parts, sec["id"], {"text": "We improved site speed by 40% (checked by dev)."}, CTX)
+    assert sec["status"] == "review"                                     # editing sends it back for a fresh look
 
 
 def test_a_flagged_part_can_still_be_deleted_and_undo_returns_it_to_review():
@@ -107,22 +108,20 @@ def test_ready_means_every_part_confirmed_or_deleted_and_at_least_one_confirmed(
     assert not ep.ready(parts) and ep.reviewed_count(parts) == (2, 3)
 
 
-def test_confirm_all_confirms_clean_parts_and_skips_the_flagged_ones():
+def test_confirm_all_confirms_every_part_and_reports_which_ones_carry_a_warning():
     parts = build([{"title": "A", "text": "Clicks rose to 1,240."}, {"title": "B", "text": "We improved site speed by 40%."}, {"title": "C", "text": "Our focus continues."}])
-    done, skipped = ep.confirm_all(parts, CTX)
-    assert len(done) == 2 and len(skipped) == 1
-    status = {p["title"]: p["status"] for p in parts if p["kind"] == "section"}
-    assert status == {"A": "confirmed", "B": "review", "C": "confirmed"}
-    assert not ep.ready(parts)                                # the flagged part still needs the person
+    done, warned = ep.confirm_all(parts, CTX)
+    assert len(done) == 3 and warned == [parts[2]["id"]]
+    assert all(p["status"] == "confirmed" for p in parts if p["kind"] == "section")
+    assert ep.ready(parts)
 
 
-def test_confirm_all_confirms_a_flagged_part_the_person_has_edited_and_leaves_deleted_ones_alone():
+def test_confirm_all_leaves_deleted_parts_alone():
     parts = build([{"title": "A", "text": "We improved site speed by 40%."}, {"title": "B", "text": "x"}])
     a, b = parts[1], parts[2]
-    ep.update_part(parts, a["id"], {"text": "We improved site speed by 40% (checked by dev)."}, CTX)
     ep.update_part(parts, b["id"], {"status": "deleted"}, CTX)
-    done, skipped = ep.confirm_all(parts, CTX)
-    assert done == [a["id"]] and skipped == [] and b["status"] == "deleted"
+    done, warned = ep.confirm_all(parts, CTX)
+    assert done == [a["id"]] and warned == [a["id"]] and b["status"] == "deleted"
     assert ep.ready(parts)
 
 

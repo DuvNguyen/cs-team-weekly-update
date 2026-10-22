@@ -321,13 +321,13 @@ def move_client_part(job: dict, name: str, part_id: str, direction: str) -> dict
 
 
 def confirm_all_parts(job: dict, name: str) -> dict:
-    """Confirm every unflagged part of a client's email. Flagged parts stay for the person to edit or delete."""
+    """Confirm every part of a client's email, and say how many of them carry a warning."""
     c = next(x for x in job["clients"] if x["name"] == name)
     ctx = job.get("_ctx", {}).get(name)
     if not c.get("parts") or not ctx:
         raise ValueError("This email has no parts to review yet.")
-    done, skipped = email_parts.confirm_all(c["parts"], ctx)
-    return {"client": client_view(job, c), "confirmed": len(done), "needs_checking": len(skipped)}
+    done, warned = email_parts.confirm_all(c["parts"], ctx)
+    return {"client": client_view(job, c), "confirmed": len(done), "with_warnings": len(warned)}
 
 
 TRENDS_NOTES = {

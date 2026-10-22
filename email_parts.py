@@ -75,7 +75,8 @@ def move_part(parts: list[dict], part_id: str, direction: str) -> None:
 
 
 def update_part(parts: list[dict], part_id: str, patch: dict, ctx: dict) -> dict:
-    """Edit, confirm, delete or restore one part. Editing makes it need a new confirmation."""
+    """Edit, confirm, delete or restore one part. Editing makes it need a new confirmation.
+    A part with untraceable details can still be confirmed: the person decides, and the warning stays visible."""
     part = _find(parts, part_id)
     status = patch.get("status")
     if status is not None and status not in STATUSES:
@@ -87,28 +88,23 @@ def update_part(parts: list[dict], part_id: str, patch: dict, ctx: dict) -> dict
                 raise ValueError(f"The {field} is too long (max {limit} characters).")
             if value != part[field]:
                 part[field], part["edited"], part["status"] = value, True, "review"
-    if status == "confirmed":
-        flags = provenance.check_part(part, ctx)["flags"]
-        if flags and not part["edited"]:
-            raise ValueError(f"This part has details that are not in the sources. {flags[0]} Edit it, or delete it.")
     if status is not None:
         part["status"] = status
     return part
 
 
 def confirm_all(parts: list[dict], ctx: dict) -> tuple[list[str], list[str]]:
-    """Confirm every part still in review that has nothing flagged (or that the person already edited).
-    Flagged parts are left for the person: (ids confirmed, ids that still need checking)."""
-    done, skipped = [], []
+    """Confirm every part still in review. Returns (ids confirmed, ids among them that carry a warning),
+    so the person is told which confirmed parts have details that are not in the sources."""
+    done, warned = [], []
     for part in parts:
         if part["status"] != "review":
             continue
-        if provenance.check_part(part, ctx)["flags"] and not part["edited"]:
-            skipped.append(part["id"])
-        else:
-            part["status"] = "confirmed"
-            done.append(part["id"])
-    return done, skipped
+        part["status"] = "confirmed"
+        done.append(part["id"])
+        if provenance.check_part(part, ctx)["flags"]:
+            warned.append(part["id"])
+    return done, warned
 
 
 def reviewed_count(parts: list[dict]) -> tuple[int, int]:
