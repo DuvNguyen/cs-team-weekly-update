@@ -256,7 +256,7 @@ def generate_client(job: dict, c: dict, config: dict, svc) -> None:
         this_week, next_week = updates.match(job["_rows"], key)
         this_week, next_week = cfg.get("this_week", this_week), cfg.get("next_week", next_week)
         this_week, next_week = clean_notes(this_week), clean_notes(next_week)
-        sheet_trends, trends_status = updates.trends_status(job["_rows"], key) if job["_rows"] else ("", "no_sheet")    # the sheet's "SEO Trends/News" cell
+        sheet_trends, trends_status = updates.trends_status(job["_rows"], key) if job["_rows"] else ("", "no_tab" if not job["tab"].strip() else "tab_error")    # the sheet's "SEO Trends/News" cell
         if "trends" in cfg:                                                            # a hand-written override in config.json
             sheet_trends = cfg["trends"]
             trends_status = "found" if sheet_trends else "empty"
@@ -324,7 +324,8 @@ TRENDS_NOTES = {
     "empty": 'The SEO sheet has nothing in the "SEO Trends/News" column for this client, so there is no trends part.',
     "no_column": 'The selected sheet tab has no "SEO Trends/News" column, so there is no trends part.',
     "no_row": "This client has no row in the selected sheet tab, so there are no notes or trends for it.",
-    "no_sheet": "No SEO sheet tab was read (none chosen, or it could not be opened), so there are no notes or trends for this client.",
+    "no_tab": 'No SEO sheet tab was chosen on Setup ("SEO team notes"), so there are no notes or trends for this client.',
+    "tab_error": "The chosen SEO sheet tab could not be opened (it may have been renamed or removed), so there are no notes or trends. Go back to Setup and pick the tab again.",
 }
 
 

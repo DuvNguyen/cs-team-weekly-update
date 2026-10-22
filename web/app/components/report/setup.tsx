@@ -25,6 +25,7 @@ export function Setup({ config, hasReport, onBack, onStart }: { config: Config; 
   // Search Console's newest day with data (the same end its own "7 days" uses). Unknown until it loads.
   const [latest, setLatest] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
+  const [staleTab, setStaleTab] = useState("");
 
   useEffect(() => {
     api
@@ -48,7 +49,20 @@ export function Setup({ config, hasReport, onBack, onStart }: { config: Config; 
   }, []);
 
   useEffect(() => {
-    api.tabs().then((r) => setTabs(r.tabs)).catch((e) => setTabsError(e.message));
+    api
+      .tabs()
+      .then((r) => {
+        setTabs(r.tabs);
+        // The saved default can point at a tab that has since been renamed or removed: say so, and don't send it.
+        setTab((cur) => {
+          if (cur && !r.tabs.includes(cur)) {
+            setStaleTab(cur);
+            return "";
+          }
+          return cur;
+        });
+      })
+      .catch((e) => setTabsError(e.message));
   }, []);
 
   // Monday to Friday of the week we're standing on (local date).
@@ -170,6 +184,12 @@ export function Setup({ config, hasReport, onBack, onStart }: { config: Config; 
               <>
                 <Combobox label="Sheet tab" value={tab} onChange={setTab} options={tabOptions} placeholder="Search tabs…" />
                 <p className="mt-2 text-sm text-grey-600">Click the box and choose this period&rsquo;s tab. Type to search.</p>
+                {staleTab && !tab && (
+                  <div className="mt-3"><Alert>The saved tab &ldquo;{staleTab}&rdquo; is no longer in the sheet. Pick this period&rsquo;s tab.</Alert></div>
+                )}
+                {!tab && (
+                  <div className="mt-3"><Alert tone="info">No tab chosen: the emails will use Search Console numbers only, without the SEO team&rsquo;s notes or the Trends/News column.</Alert></div>
+                )}
               </>
             ) : tabsError ? (
               <>

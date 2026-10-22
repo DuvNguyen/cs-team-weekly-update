@@ -132,7 +132,8 @@ def test_the_sheets_trends_show_up_for_review_and_only_join_the_email_when_confi
     ("empty", 'nothing in the "SEO Trends/News" column'),
     ("no_column", 'no "SEO Trends/News" column'),
     ("no_row", "no row in the selected sheet tab"),
-    ("no_sheet", "No SEO sheet tab was read"),
+    ("no_tab", "No SEO sheet tab was chosen"),
+    ("tab_error", "could not be opened"),
 ])
 def test_the_client_says_why_it_has_no_trends(api, status, expected):
     job = ready_job(api)
