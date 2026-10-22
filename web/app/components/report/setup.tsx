@@ -26,6 +26,7 @@ export function Setup({ config, hasReport, onBack, onStart }: { config: Config; 
   const [latest, setLatest] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
   const [staleTab, setStaleTab] = useState("");
+  const [newTabs, setNewTabs] = useState<string[]>([]);       // tabs that appeared since the last look and have not been picked yet
 
   useEffect(() => {
     api
@@ -53,6 +54,7 @@ export function Setup({ config, hasReport, onBack, onStart }: { config: Config; 
       .tabs()
       .then((r) => {
         setTabs(r.tabs);
+        setNewTabs(r.new);
         // The saved default can point at a tab that has since been renamed or removed: say so, and don't send it.
         setTab((cur) => {
           if (cur && !r.tabs.includes(cur)) {
@@ -79,8 +81,8 @@ export function Setup({ config, hasReport, onBack, onStart }: { config: Config; 
     { label: "Last 30 days", days: 30 },
   ];
   const tabOptions = useMemo(
-    () => [{ value: "", label: "No notes (numbers only)" }, ...(tabs ?? []).map((t) => ({ value: t, label: t }))],
-    [tabs],
+    () => [{ value: "", label: "No notes (numbers only)" }, ...(tabs ?? []).map((t) => ({ value: t, label: t, tag: newTabs.includes(t) ? "New" : undefined }))],
+    [tabs, newTabs],
   );
   const valid = start && end && start <= end && picked.length > 0;
 
@@ -184,7 +186,19 @@ export function Setup({ config, hasReport, onBack, onStart }: { config: Config; 
           <Card title="SEO team notes" n={2} i={1}>
             {tabs ? (
               <>
-                <Combobox label="Sheet tab" value={tab} onChange={setTab} options={tabOptions} placeholder="Search tabs…" />
+                <Combobox
+                  label="Sheet tab"
+                  value={tab}
+                  onChange={(t) => {
+                    setTab(t);
+                    if (t && newTabs.includes(t)) {            // picking a new tab means it has been seen
+                      setNewTabs((all) => all.filter((x) => x !== t));
+                      api.markTabSeen(t).catch(() => {});
+                    }
+                  }}
+                  options={tabOptions}
+                  placeholder="Search tabs…"
+                />
                 <p className="mt-2 text-sm text-grey-600">Click the box and choose this period&rsquo;s tab. Type to search.</p>
                 {staleTab && !tab && (
                   <div className="mt-3"><Alert>The saved tab &ldquo;{staleTab}&rdquo; is no longer in the sheet. Pick this period&rsquo;s tab.</Alert></div>

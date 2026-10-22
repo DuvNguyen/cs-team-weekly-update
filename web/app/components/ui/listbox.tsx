@@ -5,7 +5,7 @@
 import { Check } from "lucide-react";
 import { useEffect } from "react";
 
-export type Option = { value: string; label: string; hint?: string };
+export type Option = { value: string; label: string; hint?: string; tag?: string };   // tag: a small pill after the label, e.g. "New"
 
 export function useOutsideClose(ref: React.RefObject<HTMLElement | null>, onClose: () => void) {
   useEffect(() => {
@@ -65,7 +65,10 @@ export function Listbox(props: {
               {selected && <Check size={13} strokeWidth={3} />}
             </span>
             <span className="min-w-0 flex-1">
-              <span className={`block truncate ${selected ? "font-semibold text-indigo" : ""}`}>{o.label}</span>
+              <span className={`flex items-center gap-2 ${selected ? "font-semibold text-indigo" : ""}`}>
+                <span className="truncate">{o.label}</span>
+                {o.tag && <span className="shrink-0 rounded-full bg-brand px-2 py-0.5 text-[0.6875rem] font-semibold leading-none text-white">{o.tag}</span>}
+              </span>
               {o.hint && <span className="block truncate text-sm text-grey-600">{o.hint}</span>}
             </span>
           </li>

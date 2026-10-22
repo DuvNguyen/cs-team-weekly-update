@@ -133,7 +133,8 @@ export const api = {
   analyzeStyle: (email: string) => call<Style>("/api/voice/analyze", send("POST", { email })),
   resetVoice: () => call<Voice>("/api/voice/reset", send("POST")),
   period: () => call<{ end: string }>("/api/period"),
-  tabs: () => call<{ tabs: string[] }>("/api/tabs"),
+  tabs: () => call<{ tabs: string[]; new: string[] }>("/api/tabs"),
+  markTabSeen: (tab: string) => call<{ ok: boolean }>("/api/tabs/seen", send("POST", { tab })),
   startJob: (b: { tab: string; clients: string[]; start: string; end: string; style_id?: string }) =>
     call<Job>("/api/jobs", send("POST", b)),
   job: (id: string) => call<Job>(`/api/jobs/${id}`),
