@@ -1,8 +1,9 @@
+import datetime as dt
 import json
 import pytest
 from fastapi.testclient import TestClient
 
-import pipeline, seen_tabs, server, sessions
+import pipeline, seen_tabs, server, sessions, tab_order
 
 
 @pytest.fixture(autouse=True)
@@ -50,6 +51,7 @@ def api(monkeypatch):
     state = {"tabs": ["12/10-23/10", "28/9-9/10"]}
     monkeypatch.setattr(pipeline, "list_tabs", lambda email=None: state["tabs"])
     monkeypatch.setattr(pipeline, "load_config", lambda: {"seo_sheet_id": "sheet-1", "clients": []})
+    monkeypatch.setattr(tab_order, "_today", lambda: dt.date(2026, 10, 22))
     return TestClient(server.app), state
 
 
@@ -60,3 +62,9 @@ def test_the_tabs_endpoint_says_which_tabs_are_new_and_picking_one_clears_it(api
     assert c.get("/api/tabs").json()["new"] == ["26/10-6/11"]
     assert c.post("/api/tabs/seen", json={"tab": "26/10-6/11"}).status_code == 200
     assert c.get("/api/tabs").json()["new"] == []
+
+
+def test_the_tabs_endpoint_lists_the_newest_tab_first(api):
+    c, state = api
+    state["tabs"] = ["11/5-15/5", "12/10-23/10", "28/9-9/10"]
+    assert c.get("/api/tabs").json()["tabs"] == ["12/10-23/10", "28/9-9/10", "11/5-15/5"]

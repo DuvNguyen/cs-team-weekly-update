@@ -3,7 +3,7 @@ import threading
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse, Response
 from pydantic import BaseModel
-import am_web, auth_web, pipeline, seen_tabs, settings_web, voice_store
+import am_web, auth_web, pipeline, seen_tabs, settings_web, tab_order, voice_store
 from auth_web import require_user
 
 app = FastAPI(title="Weekly update tool")
@@ -145,7 +145,7 @@ def get_period(user: dict = Depends(require_user)):
 def get_tabs(user: dict = Depends(require_user)):
     try:
         tabs = pipeline.list_tabs(None if pipeline.DEMO else user["email"])
-        return {"tabs": tabs, "new": seen_tabs.new_tabs(pipeline.load_config().get("seo_sheet_id", "demo"), tabs)}
+        return {"tabs": tab_order.newest_first(tabs), "new": seen_tabs.new_tabs(pipeline.load_config().get("seo_sheet_id", "demo"), tabs)}
     except auth_web.NotSignedIn:
         raise
     except Exception as e:
