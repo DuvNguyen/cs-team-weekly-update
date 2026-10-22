@@ -1,3 +1,20 @@
+export type PartTag = "template" | "gsc" | "notes" | "ai" | "trend" | "you";
+export type PartCheck = {
+  tags: PartTag[];
+  numbers: { matched: string[]; unmatched: string[] };
+  lines: { text: string; tag: "notes" | "flag" }[];
+  flags: string[];
+};
+export type Part = {
+  id: string;
+  kind: "greeting" | "section" | "notes" | "trend" | "signoff";
+  title: string;
+  text: string;
+  status: "review" | "confirmed" | "deleted";
+  edited: boolean;
+  check: PartCheck;
+};
+
 export type Totals = { clicks: number; impressions: number; ctr: string; position: string };
 
 export type ClientRow = {
@@ -10,6 +27,10 @@ export type ClientRow = {
   totals: Totals | null;
   prev_totals: Totals | null;
   body: string;
+  parts: Part[];
+  parts_reviewed: number;
+  parts_total: number;
+  ready: boolean;
   has_chart: boolean;
   style_id: string;
   style_name: string;
@@ -111,6 +132,8 @@ export const api = {
   startJob: (b: { tab: string; clients: string[]; start: string; end: string; style_id?: string }) =>
     call<Job>("/api/jobs", send("POST", b)),
   job: (id: string) => call<Job>(`/api/jobs/${id}`),
+  patchPart: (id: string, name: string, partId: string, b: { title?: string; text?: string; status?: Part["status"] }) =>
+    call<ClientRow>(`/api/jobs/${id}/clients/${encodeURIComponent(name)}/parts/${partId}`, send("PATCH", b)),
   patch: (id: string, name: string, b: { body?: string; include?: boolean }) =>
     call<ClientRow>(`/api/jobs/${id}/clients/${encodeURIComponent(name)}`, send("PATCH", b)),
   retry: (id: string, name: string) =>

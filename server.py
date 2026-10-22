@@ -34,6 +34,12 @@ class ClientPatch(BaseModel):
     include: bool | None = None
 
 
+class PartPatch(BaseModel):
+    title: str | None = None
+    text: str | None = None
+    status: str | None = None
+
+
 class Regen(BaseModel):
     prompt: str = ""
     style_id: str | None = None
@@ -153,10 +159,20 @@ def get_chart(job_id: str, name: str, user: dict = Depends(require_user)):
 def patch_client(job_id: str, name: str, patch: ClientPatch, user: dict = Depends(require_user)):
     c = _client(_job(job_id, user), name)
     if patch.body is not None:
-        c["body"] = patch.body
+        c["body"], c["parts"] = patch.body, []              # a hand-written body replaces the reviewed parts
     if patch.include is not None:
         c["include"] = patch.include
-    return c
+    return pipeline.client_view(_job(job_id, user), c)
+
+
+@api.patch("/api/jobs/{job_id}/clients/{name}/parts/{part_id}")
+def patch_part(job_id: str, name: str, part_id: str, patch: PartPatch, user: dict = Depends(require_user)):
+    job = _job(job_id, user)
+    _client(job, name)
+    try:
+        return pipeline.update_client_part(job, name, part_id, patch.model_dump(exclude_none=True))
+    except ValueError as e:
+        raise HTTPException(409 if "not in the sources" in str(e) else 400, str(e))
 
 
 @api.post("/api/jobs/{job_id}/clients/{name}/retry")
@@ -165,7 +181,7 @@ def retry(job_id: str, name: str, user: dict = Depends(require_user)):
     c = _client(job, name)
     c["status"] = "running"
     threading.Thread(target=pipeline.retry_client, args=(job, name), daemon=True).start()
-    return c
+    return pipeline.client_view(job, c)
 
 
 @api.post("/api/jobs/{job_id}/clients/{name}/regenerate")
@@ -178,7 +194,7 @@ def regenerate(job_id: str, name: str, body: Regen, user: dict = Depends(require
         raise
     except Exception as e:
         raise HTTPException(502, str(e).splitlines()[0][:200])
-    return c
+    return pipeline.client_view(job, c)
 
 
 @api.post("/api/jobs/{job_id}/publish")

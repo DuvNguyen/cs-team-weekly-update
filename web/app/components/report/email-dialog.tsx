@@ -5,19 +5,19 @@ import { useEffect, useRef, useState } from "react";
 import { api, type ClientRow, type Job, type Style } from "../../lib/api";
 import { Combobox } from "../ui/combobox";
 import { Alert } from "../ui/feedback";
+import { EmailParts } from "./email-parts";
 import { Stats } from "./stats";
 
 /* Full editor for one client's email: edit by hand, or rewrite with a prompt. */
 export function EmailDialog(props: {
   job: Job;
   c: ClientRow;
-  text: string;
-  onText: (v: string) => void;
+  onChanged: () => Promise<unknown>;
   styles: Style[];
   onRegenerate: (prompt: string, styleId: string) => Promise<void>;
   onClose: () => void;
 }) {
-  const { job, c, text, onText, styles, onRegenerate, onClose } = props;
+  const { job, c, onChanged, styles, onRegenerate, onClose } = props;
   const ref = useRef<HTMLDialogElement>(null);
   const [prompt, setPrompt] = useState("");
   const [styleId, setStyleId] = useState(c.style_id);
@@ -74,14 +74,7 @@ export function EmailDialog(props: {
           </div>
 
           <div className="flex flex-col lg:col-span-7">
-            <label htmlFor="email-body" className="label">Email (editable)</label>
-            <textarea
-              id="email-body"
-              value={text}
-              onChange={(e) => onText(e.target.value)}
-              disabled={busy}
-              className="field min-h-80 flex-1 resize-y leading-relaxed"
-            />
+            <EmailParts job={job} c={c} onChanged={onChanged} />
 
             {styles.length > 1 && (
               <div className="mt-5">
@@ -111,7 +104,7 @@ export function EmailDialog(props: {
                 {busy ? "Rewriting" : prompt.trim() ? "Regenerate with prompt" : "Regenerate"}
               </button>
             </div>
-            <p className="mt-2 text-sm text-grey-600">Regenerating replaces the text above with a fresh email. Your manual edits are lost.</p>
+            <p className="mt-2 text-sm text-grey-600">Regenerating replaces all the parts above with a fresh email. Your edits and confirmations are lost.</p>
             {error && <div className="mt-3"><Alert>{error}</Alert></div>}
           </div>
         </div>

@@ -34,8 +34,9 @@ def build_prompt(name: str, category: str, series: dict, prev: dict, this_week: 
         voice.EXAMPLES,
         f'Now write the bi-weekly update for the client "{name}".',
         ("Write the email body in these sections, in this order. The greeting and sign-off are added separately, so leave them out. "
-         "Put each section's title on its own line exactly as given (a section with no title is just paragraphs), then its content. "
-         "Plain text only, no markdown symbols (no #, no **); start each list item with '- ' on its own line. "
+         'Return JSON only: {"sections": [{"title": ..., "content": ...}]} with one entry per section, in the same order. '
+         '"title" is the section title exactly as given ("" when it has no title); "content" is that section\'s text. '
+         "Plain text only inside content, no markdown symbols (no #, no **); start each list item with '- ' on its own line. "
          "This layout overrides any style rule against headings or lists.\n" + structure)
         if structure else "ONE paragraph, 4-6 sentences, in the style above.",
         "",

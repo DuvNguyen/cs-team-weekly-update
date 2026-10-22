@@ -4,13 +4,14 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { AlertTriangle, Info } from "lucide-react";
 import type { ReactNode } from "react";
 
-export function Badge({ tone = "neutral", children }: { tone?: "neutral" | "blue" | "sky" | "danger" | "amber"; children: ReactNode }) {
+export function Badge({ tone = "neutral", children }: { tone?: "neutral" | "blue" | "sky" | "danger" | "amber" | "green"; children: ReactNode }) {
   const cls = {
     neutral: "bg-grey-100 text-grey-600",
     blue: "bg-brand-050 text-brand-600",
     sky: "bg-sky-050 text-sky-700",
     danger: "bg-danger-050 text-danger",
     amber: "bg-[#fff4d6] text-[#8a6100]",
+    green: "bg-[#e7f8ee] text-[#157a3c]",
   }[tone];
   return <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold tracking-[0.01em] ${cls}`}>{children}</span>;
 }

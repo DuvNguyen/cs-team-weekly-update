@@ -10,7 +10,6 @@ import { EmailDialog } from "./email-dialog";
 
 /* Steps 2-3: progress, per-client review, Word download. */
 export function Run({ job, onJob, onBack, onReset }: { job: Job; onJob: (j: Job) => void; onBack: () => void; onReset: () => void }) {
-  const [edits, setEdits] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [saved, setSaved] = useState("");
@@ -36,9 +35,6 @@ export function Run({ job, onJob, onBack, onReset }: { job: Job; onJob: (j: Job)
     setSaveError("");
     setSaved("");
     try {
-      // Save any text edits first so the file contains exactly what is on screen.
-      await Promise.all(Object.entries(edits).map(([name, body]) => api.patch(job.id, name, { body })));
-      setEdits({});
       setSaved(await api.downloadDocx(job.id));
       await refresh();
     } catch (e) {
@@ -57,7 +53,7 @@ export function Run({ job, onJob, onBack, onReset }: { job: Job; onJob: (j: Job)
     );
 
   const done = job.clients.filter((c) => c.status === "ok" || c.status === "failed").length;
-  const selected = job.clients.filter((c) => c.include && c.status === "ok").length;
+  const selected = job.clients.filter((c) => c.include && c.status === "ok" && c.ready).length;      // ticked and every part reviewed
   const ready = job.status === "ready" && !working;
 
   return (
@@ -85,7 +81,7 @@ export function Run({ job, onJob, onBack, onReset }: { job: Job; onJob: (j: Job)
             i={Math.min(i, 6)}
             job={job}
             c={c}
-            text={edits[c.name] ?? c.body}
+            text={c.body}
             onOpen={() => setOpen(c.name)}
             onInclude={(v) => api.patch(job.id, c.name, { include: v }).then(refresh)}
             onRetry={() => api.retry(job.id, c.name).then(refresh)}
@@ -99,16 +95,10 @@ export function Run({ job, onJob, onBack, onReset }: { job: Job; onJob: (j: Job)
             key={c.name}
             job={job}
             c={c}
-            text={edits[c.name] ?? c.body}
-            onText={(v) => setEdits((e) => ({ ...e, [c.name]: v }))}
+            onChanged={refresh}
             styles={voice?.styles ?? []}
             onRegenerate={async (prompt, styleId) => {
               await api.regenerate(job.id, c.name, prompt, styleId);
-              setEdits((e) => {
-                const rest = { ...e };
-                delete rest[c.name];
-                return rest;
-              });
               await refresh();
             }}
             onClose={() => setOpen(null)}
@@ -118,7 +108,7 @@ export function Run({ job, onJob, onBack, onReset }: { job: Job; onJob: (j: Job)
 
       {saveError && <Alert>{saveError}</Alert>}
       {job.error && ready && <Alert>{job.error}</Alert>}
-      {saved && <Alert tone="info">Downloaded {saved}. Open a client card to edit its email, then download again if anything needs changing.</Alert>}
+      {saved && <Alert tone="info">Downloaded {saved}. Open a client card to review its email, then download again if anything needs changing.</Alert>}
 
       <div className="pointer-events-none fixed inset-x-0 bottom-6 z-[100] flex justify-center px-4">
         <div className="pointer-events-auto flex max-w-full items-center gap-x-5 gap-y-2 rounded-full border border-grey-200 bg-white/95 py-2.5 pl-2.5 pr-6 shadow-[var(--shadow-lg)] backdrop-blur">

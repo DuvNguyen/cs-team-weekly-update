@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 load_dotenv()   # .env next to this file; real environment variables win
 
-import auth, auth_web, chart, dates, gsc, report, trends, updates, voice, voice_store
+import auth, auth_web, chart, email_parts, provenance, dates, gsc, report, trends, updates, voice, voice_store
 from googleapiclient.discovery import build
 from google import genai
 
@@ -167,7 +167,11 @@ def _prompt(style: dict, name: str, category: str, series: dict, prev: dict, thi
         return report.build_prompt(name, category, series, prev, this_week, next_week)
 
 
-def _generate(gemini, prompt: str) -> str:
+def _generate(gemini, prompt: str, as_json: bool = False) -> str:
+    if as_json:
+        from google.genai import types
+        config = types.GenerateContentConfig(response_mime_type="application/json")
+        return (gemini.models.generate_content(model=report.MODEL, contents=prompt, config=config).text or "").strip()
     return (gemini.models.generate_content(model=report.MODEL, contents=prompt).text or "").strip()
 
 
@@ -191,7 +195,9 @@ def new_job(tab: str, client_names: list, start: str, end: str, email: str | Non
 
 
 def view(job: dict) -> dict:
-    return {k: v for k, v in job.items() if not k.startswith("_")}
+    out = {k: v for k, v in job.items() if not k.startswith("_")}
+    out["clients"] = [client_view(job, c) for c in job["clients"]]
+    return out
 
 
 def _run(job: dict) -> None:
@@ -267,11 +273,11 @@ def generate_client(job: dict, c: dict, config: dict, svc) -> None:
         if summary is None:
             prompt = _prompt(style, c["name"], c["category"], series, prev, this_week, next_week, start, end)
             with _api_lock:
-                summary = _generate(svc["gemini"], prompt)
+                summary = _generate(svc["gemini"], prompt, as_json=voice_store.has_structure(style))
         trend, sources = job["_trends"].get(c["category"], ("", []))
         ctx = job.setdefault("_ctx", {})[c["name"]] = dict(series=series, prev=prev, this_week=this_week,
                                                             next_week=next_week, trend=trend, sources=sources)
-        c["body"] = _email(config, cfg, c, summary, ctx)
+        _assemble(config, cfg, c, summary, ctx)
         c["totals"], c["prev_totals"] = series["totals"], prev["totals"]
         c["has_chart"], c["status"] = True, "ok"
     except Exception as e:
@@ -279,13 +285,37 @@ def generate_client(job: dict, c: dict, config: dict, svc) -> None:
         c["include"] = False
 
 
-def _email(config: dict, cfg: dict, c: dict, summary: str, ctx: dict) -> str:
-    """The client email: greeting, the summary + SEO notes (compose_body), sign-off."""
+def _assemble(config: dict, cfg: dict, c: dict, summary: str, ctx: dict) -> None:
+    """Turn the generated text into the client's email parts (greeting, sections, trend, sign-off) and the email text."""
     structured = voice_store.has_structure(voice_store.get_style(c.get("style_id")))     # the sections already cover the work
-    body = report.compose_body(summary, ctx["this_week"], ctx["next_week"], c["category"], ctx["trend"], ctx["sources"], notes=not structured)
+    sections = email_parts.from_generation(summary, structured and not DEMO)
     hi = cfg.get("contact") or f"{c['name']} team"
-    sender = config.get("sender", "Mimi Pham")
-    return f"Hi {hi},\n\n{body}\n\nBest regards,\n{sender}\nSaigon Digital"
+    c["parts"] = email_parts.build(f"Hi {hi},", sections, ctx, structured, ctx["trend"], ctx["sources"], c["category"], config.get("sender", "Mimi Pham"))
+    c["body"] = email_parts.compose_body(c["parts"])
+
+
+def update_client_part(job: dict, name: str, part_id: str, patch: dict) -> dict:
+    """Edit / confirm / delete one part of a client's email and rebuild the email text from the parts."""
+    c = next(x for x in job["clients"] if x["name"] == name)
+    ctx = job.get("_ctx", {}).get(name)
+    if not c.get("parts") or not ctx:
+        raise ValueError("This email has no parts to review yet.")
+    email_parts.update_part(c["parts"], part_id, patch, ctx)
+    c["body"] = email_parts.compose_body(c["parts"])
+    return client_view(job, c)
+
+
+def client_view(job: dict, c: dict) -> dict:
+    """A client for the browser: its parts carry the provenance check, recomputed from the current text."""
+    ctx = job.get("_ctx", {}).get(c["name"]) or {}
+    parts = [{**p, "check": provenance.check_part(p, ctx)} for p in c.get("parts", [])]
+    done, total = email_parts.reviewed_count(c.get("parts", []))
+    return {**c, "parts": parts, "parts_reviewed": done, "parts_total": total, "ready": email_parts.ready(c.get("parts", [])) if parts else True}
+
+
+def _chosen(job: dict) -> list:
+    """Clients going into the report: ticked, generated, and every part of the email reviewed."""
+    return [c for c in job["clients"] if c["include"] and c["status"] == "ok" and (not c.get("parts") or email_parts.ready(c["parts"]))]
 
 
 def regenerate_client(job: dict, name: str, instruction: str, style_id: str | None = None) -> None:
@@ -327,9 +357,9 @@ def retry_client(job: dict, name: str) -> None:
 
 
 def publish(job: dict) -> str:
-    chosen = [c for c in job["clients"] if c["include"] and c["status"] == "ok"]
+    chosen = _chosen(job)
     if not chosen:
-        raise ValueError("No clients selected to publish.")
+        raise ValueError("Nothing to publish yet: tick a client and confirm or delete every part of its email.")
     job["status"], job["message"] = "publishing", "Creating the Google Doc…"
     try:
         if DEMO:
@@ -388,9 +418,9 @@ def export_docx(job: dict) -> tuple:
     """Build the report as a Word file from the previews on screen. Returns (bytes, filename)."""
     from docx import Document
     from docx.shared import Inches
-    chosen = [c for c in job["clients"] if c["include"] and c["status"] == "ok"]
+    chosen = _chosen(job)
     if not chosen:
-        raise ValueError("No clients selected to export.")
+        raise ValueError("Nothing to export yet: tick a client and confirm or delete every part of its email.")
     doc = Document()
     doc.add_heading(f"Bi-weekly SEO Report — {job['start']} to {job['end']}", level=0)
     for i, c in enumerate(chosen):

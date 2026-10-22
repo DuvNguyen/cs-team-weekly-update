@@ -2,7 +2,7 @@ import io
 import pytest
 from fastapi.testclient import TestClient
 
-import server, sessions, voice_store
+import pipeline, server, sessions, voice_store
 
 
 def style(structure):
@@ -25,7 +25,8 @@ def test_unknown_or_missing_source_tags_become_empty():
 
 @pytest.fixture
 def client(tmp_path, monkeypatch):
-    monkeypatch.setenv("WUT_DEMO", "1")
+    monkeypatch.setenv("WUT_DEMO", "1")                # passes the sign-in gate
+    monkeypatch.setattr(pipeline, "DEMO", True)        # no Gemini calls (this flag is read once, at import)
     monkeypatch.setattr(sessions, "DATA_DIR", str(tmp_path))
     return TestClient(server.app)
 

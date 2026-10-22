@@ -49,8 +49,8 @@ export function ClientCard(props: {
         </div>
         {c.status === "ok" && (
           <span onClick={(e) => e.stopPropagation()}>
-            <Checkbox checked={c.include} onChange={onInclude}>
-              Include in file
+            <Checkbox checked={c.include && c.ready} onChange={onInclude} disabled={!c.ready}>
+              {c.ready ? "Include in file" : "Review every part to include"}
             </Checkbox>
           </span>
         )}
@@ -92,10 +92,13 @@ export function ClientCard(props: {
           <div className="flex flex-col lg:col-span-7">
             <span className="label">Email to the client{c.style_name ? <span className="font-normal text-grey-600"> &middot; {c.style_name}</span> : null}</span>
             <p className="line-clamp-6 flex-1 whitespace-pre-line leading-relaxed text-grey-600">{text}</p>
-            <span className="mt-3 inline-flex items-center gap-1.5 self-start text-sm font-semibold text-brand">
-              <Pencil size={14} />
-              Open to edit or regenerate
-            </span>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <Badge tone={c.ready ? "green" : "amber"}>{c.parts_reviewed} of {c.parts_total} parts reviewed</Badge>
+              <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand">
+                <Pencil size={14} />
+                Open to review, edit or regenerate
+              </span>
+            </div>
           </div>
         </div>
       )}
