@@ -1,13 +1,13 @@
 "use client";
 
-import { Check, CheckCheck, Pencil, Save, Trash2, Undo2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, CheckCheck, Pencil, Save, Trash2, Undo2 } from "lucide-react";
 import { useState } from "react";
 import { api, type ClientRow, type Job, type Part } from "../../lib/api";
 import { Alert, Badge } from "../ui/feedback";
 import { PartTag } from "../ui/part-tag";
 
 /* One part of the email: heading, content, where it came from, and Confirm / Edit / Delete. */
-function PartCard({ part, busy, onPatch }: { part: Part; busy: boolean; onPatch: (b: { title?: string; text?: string; status?: Part["status"] }) => Promise<void> }) {
+function PartCard({ part, busy, onPatch, onMove }: { part: Part; busy: boolean; onPatch: (b: { title?: string; text?: string; status?: Part["status"] }) => Promise<void>; onMove?: { up: (() => void) | null; down: (() => void) | null } }) {
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(part.title);
   const [text, setText] = useState(part.text);
@@ -30,7 +30,19 @@ function PartCard({ part, busy, onPatch }: { part: Part; busy: boolean; onPatch:
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <strong className={deleted ? "line-through" : "text-indigo"}>{label}</strong>
-        {confirmed ? <Badge tone="green">Confirmed</Badge> : deleted ? <Badge>Deleted</Badge> : part.optional ? <Badge>Not in the email</Badge> : <Badge tone={flagged ? "danger" : "blue"}>{flagged ? "Check this" : "Needs review"}</Badge>}
+        <div className="flex items-center gap-1.5">
+          {onMove && (
+            <span className="mr-1 inline-flex items-center gap-0.5">
+              <button type="button" onClick={onMove.up ?? undefined} disabled={busy || !onMove.up} aria-label={`Move ${label} up`} title="Move up" className="grid size-7 place-items-center rounded-full text-grey-600 transition-colors duration-[var(--dur-fast)] hover:bg-grey-100 hover:text-ink disabled:opacity-30 disabled:hover:bg-transparent">
+                <ArrowUp size={15} />
+              </button>
+              <button type="button" onClick={onMove.down ?? undefined} disabled={busy || !onMove.down} aria-label={`Move ${label} down`} title="Move down" className="grid size-7 place-items-center rounded-full text-grey-600 transition-colors duration-[var(--dur-fast)] hover:bg-grey-100 hover:text-ink disabled:opacity-30 disabled:hover:bg-transparent">
+                <ArrowDown size={15} />
+              </button>
+            </span>
+          )}
+          {confirmed ? <Badge tone="green">Confirmed</Badge> : deleted ? <Badge>Deleted</Badge> : part.optional ? <Badge>Not in the email</Badge> : <Badge tone={flagged ? "danger" : "blue"}>{flagged ? "Check this" : "Needs review"}</Badge>}
+        </div>
       </div>
 
       {deleted ? (
@@ -137,6 +149,19 @@ export function EmailParts({ job, c, onChanged }: { job: Job; c: ClientRow; onCh
     }
   }
 
+  async function move(part: Part, direction: "up" | "down") {
+    setBusy(true);
+    setError("");
+    try {
+      await api.movePart(job.id, c.name, part.id, direction);
+      await onChanged();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function patch(part: Part, b: { title?: string; text?: string; status?: Part["status"] }) {
     setBusy(true);
     setError("");
@@ -172,9 +197,15 @@ export function EmailParts({ job, c, onChanged }: { job: Job; c: ClientRow; onCh
       {note && <Alert tone="info">{note}</Alert>}
       {c.trends_note && <Alert tone="info">{c.trends_note}</Alert>}
       <ol className="space-y-3">
-        {c.parts.map((p) => (
-          <PartCard key={`${p.id}-${p.text.length}-${p.status}`} part={p} busy={busy} onPatch={(b) => patch(p, b)} />
-        ))}
+        {c.parts.map((p, i) => {
+          // The greeting stays first and the sign-off last; everything between can move.
+          const fixed = p.kind === "greeting" || p.kind === "signoff";
+          const onMove = fixed ? undefined : {
+            up: c.parts[i - 1]?.kind === "greeting" ? null : () => move(p, "up"),
+            down: c.parts[i + 1]?.kind === "signoff" ? null : () => move(p, "down"),
+          };
+          return <PartCard key={`${p.id}-${p.text.length}-${p.status}`} part={p} busy={busy} onPatch={(b) => patch(p, b)} onMove={onMove} />;
+        })}
       </ol>
     </div>
   );

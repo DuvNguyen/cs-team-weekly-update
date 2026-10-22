@@ -7,6 +7,7 @@ import secrets
 
 import provenance
 
+FIXED = ("greeting", "signoff")          # these stay first and last; every other part can be moved
 STATUSES = ("review", "confirmed", "deleted")
 MAX_TEXT, MAX_TITLE = 20000, 200
 
@@ -57,6 +58,20 @@ def _find(parts: list[dict], part_id: str) -> dict:
     if part is None:
         raise ValueError("That part of the email no longer exists.")
     return part
+
+
+def move_part(parts: list[dict], part_id: str, direction: str) -> None:
+    """Swap a part with its neighbour, up or down. The greeting stays first and the sign-off last."""
+    if direction not in ("up", "down"):
+        raise ValueError("The direction must be up or down.")
+    part = _find(parts, part_id)
+    if part["kind"] in FIXED:
+        raise ValueError("The greeting and the sign-off are fixed in place.")
+    i = parts.index(part)
+    j = i - 1 if direction == "up" else i + 1
+    if parts[j]["kind"] in FIXED:
+        raise ValueError("This is already the first part after the greeting." if direction == "up" else "This is already the last part before the sign-off.")
+    parts[i], parts[j] = parts[j], parts[i]
 
 
 def update_part(parts: list[dict], part_id: str, patch: dict, ctx: dict) -> dict:

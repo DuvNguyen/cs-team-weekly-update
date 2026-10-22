@@ -175,3 +175,50 @@ def test_confirm_all_also_confirms_the_trends_part():
     parts = build_t()
     done, skipped = ep.confirm_all(parts, TRENDS_CTX)
     assert parts[2]["id"] in done and "SEO trends / news" in ep.compose_body(parts)
+
+
+def kinds_titles(parts):
+    return [p["title"] or p["kind"] for p in parts]
+
+
+def three_sections():
+    return build([{"title": "A", "text": "a"}, {"title": "B", "text": "b"}, {"title": "C", "text": "c"}])
+
+
+def test_moving_a_part_down_and_up_swaps_it_with_its_neighbour_and_the_email_follows():
+    parts = three_sections()
+    a, b = parts[1], parts[2]
+    ep.move_part(parts, a["id"], "down")
+    assert kinds_titles(parts) == ["greeting", "B", "A", "C", "signoff"]
+    assert ep.compose_body(parts).index("B\nb") < ep.compose_body(parts).index("A\na")
+    ep.move_part(parts, a["id"], "up")
+    assert kinds_titles(parts) == ["greeting", "A", "B", "C", "signoff"]
+
+
+def test_the_greeting_and_sign_off_never_move_and_nothing_moves_past_them():
+    parts = three_sections()
+    for fixed in (parts[0], parts[-1]):
+        with pytest.raises(ValueError, match="fixed"):
+            ep.move_part(parts, fixed["id"], "down" if fixed is parts[0] else "up")
+    with pytest.raises(ValueError, match="first"):
+        ep.move_part(parts, parts[1]["id"], "up")                  # would go above the greeting
+    with pytest.raises(ValueError, match="last"):
+        ep.move_part(parts, parts[3]["id"], "down")                # would go below the sign-off
+    assert kinds_titles(parts) == ["greeting", "A", "B", "C", "signoff"]
+
+
+def test_moving_keeps_status_and_edits_and_works_past_deleted_parts():
+    parts = three_sections()
+    a, b = parts[1], parts[2]
+    ep.update_part(parts, a["id"], {"status": "confirmed"}, CTX)
+    ep.update_part(parts, b["id"], {"status": "deleted"}, CTX)
+    ep.move_part(parts, a["id"], "down")                           # swaps with the deleted B
+    assert kinds_titles(parts)[1:3] == ["B", "A"] and a["status"] == "confirmed" and a["edited"] is False
+
+
+def test_bad_direction_and_unknown_part_are_rejected():
+    parts = three_sections()
+    with pytest.raises(ValueError, match="direction"):
+        ep.move_part(parts, parts[1]["id"], "sideways")
+    with pytest.raises(ValueError, match="part"):
+        ep.move_part(parts, "nope", "up")

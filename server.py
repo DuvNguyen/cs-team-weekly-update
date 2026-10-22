@@ -41,6 +41,10 @@ class PartPatch(BaseModel):
     status: str | None = None
 
 
+class MoveIn(BaseModel):
+    direction: str
+
+
 class Regen(BaseModel):
     prompt: str = ""
     style_id: str | None = None
@@ -184,6 +188,16 @@ def patch_part(job_id: str, name: str, part_id: str, patch: PartPatch, user: dic
         return pipeline.update_client_part(job, name, part_id, patch.model_dump(exclude_none=True))
     except ValueError as e:
         raise HTTPException(409 if "not in the sources" in str(e) else 400, str(e))
+
+
+@api.post("/api/jobs/{job_id}/clients/{name}/parts/{part_id}/move")
+def move_part(job_id: str, name: str, part_id: str, body: MoveIn, user: dict = Depends(require_user)):
+    job = _job(job_id, user)
+    _client(job, name)
+    try:
+        return pipeline.move_client_part(job, name, part_id, body.direction)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
 
 
 @api.post("/api/jobs/{job_id}/clients/{name}/parts/confirm-all")

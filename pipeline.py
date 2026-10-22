@@ -310,6 +310,16 @@ def update_client_part(job: dict, name: str, part_id: str, patch: dict) -> dict:
     return client_view(job, c)
 
 
+def move_client_part(job: dict, name: str, part_id: str, direction: str) -> dict:
+    """Move one part of a client's email up or down and rebuild the email text in the new order."""
+    c = next(x for x in job["clients"] if x["name"] == name)
+    if not c.get("parts"):
+        raise ValueError("This email has no parts to move yet.")
+    email_parts.move_part(c["parts"], part_id, direction)
+    c["body"] = email_parts.compose_body(c["parts"])
+    return client_view(job, c)
+
+
 def confirm_all_parts(job: dict, name: str) -> dict:
     """Confirm every unflagged part of a client's email. Flagged parts stay for the person to edit or delete."""
     c = next(x for x in job["clients"] if x["name"] == name)

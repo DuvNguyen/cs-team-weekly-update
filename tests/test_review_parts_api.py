@@ -141,3 +141,24 @@ def test_the_client_says_why_it_has_no_trends(api, status, expected):
     pipeline.JOBS[job["id"]]["_ctx"]["Alpha"]["trends_status"] = status
     note = api.get(f"/api/jobs/{job['id']}").json()["clients"][0]["trends_note"]
     assert expected in note
+
+
+def test_parts_can_be_moved_up_and_down_and_the_email_text_follows(api):
+    job = ready_job(api)
+    notes = part(job, "notes")
+    before = [p["kind"] for p in job["clients"][0]["parts"]]
+    assert before == ["greeting", "section", "notes", "trends", "signoff"]
+    r = api.post(f"/api/jobs/{job['id']}/clients/Alpha/parts/{notes['id']}/move", json={"direction": "up"})
+    assert r.status_code == 200
+    c = r.json()
+    assert [p["kind"] for p in c["parts"]] == ["greeting", "notes", "section", "trends", "signoff"]
+    assert c["body"].index("SEO team notes") < c["body"].index("Demo summary")
+
+
+def test_moving_the_greeting_or_off_the_ends_is_refused(api):
+    job = ready_job(api)
+    g = part(job, "greeting")
+    assert api.post(f"/api/jobs/{job['id']}/clients/Alpha/parts/{g['id']}/move", json={"direction": "down"}).status_code == 400
+    sec = part(job, "section")
+    assert api.post(f"/api/jobs/{job['id']}/clients/Alpha/parts/{sec['id']}/move", json={"direction": "up"}).status_code == 400
+    assert api.post(f"/api/jobs/{job['id']}/clients/Alpha/parts/{sec['id']}/move", json={"direction": "left"}).status_code == 400
