@@ -42,7 +42,7 @@ Set `WUT_DEMO=1` to run the whole flow on fake data, with no Google sign-in and 
 | `new_job(tab, clients, start, end, email, style_id)` | Starts a background job, one preview per client, owned by `email`, written in the chosen style. |
 | `generate_client(job, c, config, svc)` | One client: Search Console data, chart, Gemini summary, then the email. Also used by Retry. |
 | `_prompt(style, ...)` / `_generate(gemini, prompt)` | Build the prompt in a given style (swaps `voice.VOICE` under a lock) and call Gemini. |
-| `_email(config, cfg, c, summary, ctx)` | The client email: "Hi {contact or client} team," + summary + SEO notes + "Best regards, {sender}". Uses `contact` and `sender` from `config.json` if set. |
+| `_assemble(config, cfg, c, summary, ctx)` | Builds the client email parts: "Hi {contact}," (or "Hi {client} team," when no greeting name is set), the sections, SEO notes / trend, and "Best regards, {sender}". Uses `contact` and `sender` from `config.json` if set. |
 | `regenerate_client(job, name, instruction, style_id)` | Rewrites one email from the stored numbers, steered by the prompt and optionally another style. |
 | `retry_client(job, name)` / `chart_path(job, name)` / `view(job)` | Re-run one client, chart file path, job without private fields. |
 | `analyze_style(email_text)` | Drafts a writing style from a pasted email (nothing is saved). |
@@ -135,7 +135,7 @@ Pages are real routes. Layouts persist across navigation and Next's Cache Compon
 
 | Item | Notes |
 |---|---|
-| `config.json` | Clients, sheet and Drive ids, keys. Optional per-client `contact`; optional top-level `sender`. Gitignored. |
+| `config.json` | Clients, sheet and Drive ids, keys. Optional per-client `contact` (the greeting name, set on the Clients page); optional top-level `sender`. Gitignored. |
 | `.env` | `GEMINI_API_KEY` copy (the app prefers it). Gitignored; `.env.example` is committed. |
 | `client_secret.json` | The Google OAuth client (app identity). Gitignored. |
 | `data/` | Sessions, per-user Google tokens, `voice.json`. Gitignored. |

@@ -19,6 +19,7 @@ class ClientIn(BaseModel):
     name: str
     property: str
     category: str = ""
+    contact: str = ""          # greeting name: "Ben" makes the email start "Hi Ben,"; empty keeps "Hi <name> team,"
 
 
 class JobIn(BaseModel):
@@ -66,10 +67,20 @@ def get_config():
 
 @api.put("/api/clients")
 def put_clients(clients: list[ClientIn]):
-    names = [c.name.strip() for c in clients]
-    if any(not n for n in names) or len(set(names)) != len(names):
+    rows = []
+    for c in clients:
+        row = {"property": c.property.strip(), "name": c.name.strip(), "category": c.category.strip()}
+        contact = c.contact.strip()
+        if not row["name"] or not row["property"]:
+            raise HTTPException(400, "Every client needs a name and a website")
+        if len(contact) > 60 or any(ch in contact for ch in "\r\n\t"):
+            raise HTTPException(400, f"{row['name']}: the greeting name must be one line, up to 60 characters")
+        if contact:
+            row["contact"] = contact
+        rows.append(row)
+    if len({r["name"] for r in rows}) != len(rows):
         raise HTTPException(400, "Client names must be unique and not empty")
-    pipeline.save_clients([c.model_dump() for c in clients])
+    pipeline.save_clients(rows)
     return {"ok": True}
 
 

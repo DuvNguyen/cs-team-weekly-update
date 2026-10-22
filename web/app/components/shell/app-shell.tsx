@@ -8,7 +8,7 @@ import { Header } from "./header";
 import { SettingsDialog } from "./settings-dialog";
 
 /* What every page can read: who is signed in, the config, and the report job being worked on. */
-type App = { me: Me; config: Config; job: Job | null; setJob: (j: Job | null) => void };
+type App = { me: Me; config: Config; job: Job | null; setJob: (j: Job | null) => void; refreshConfig: () => Promise<void> };
 const AppContext = createContext<App | null>(null);
 
 export function useApp(): App {
@@ -66,7 +66,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Skeleton className="h-72 lg:col-span-7" />
           </div>
         ) : (
-          <AppContext.Provider value={{ me, config, job, setJob }}>{children}</AppContext.Provider>
+          <AppContext.Provider value={{ me, config, job, setJob, refreshConfig: () => api.config().then(setConfig) }}>{children}</AppContext.Provider>
         )}
       </main>
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} onChanged={checkSetup} />

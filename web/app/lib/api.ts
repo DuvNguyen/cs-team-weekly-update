@@ -57,8 +57,10 @@ export type StructureDraft = { email: string; sections: DraftSection[] };
 export type Style = { id: string; name: string; persona: string; style: Rule[]; avoid: Rule[]; examples: Example[]; structure: Section[] };
 export type Voice = { styles: Style[]; default_id: string };
 
+export type ClientConfig = { name: string; property: string; category: string; contact?: string };   // contact = greeting name ("Ben" -> "Hi Ben,")
+
 export type Config = {
-  clients: { name: string; property: string; category: string }[];
+  clients: ClientConfig[];
   seo_sheet_tab: string;
   demo: boolean;
   period: { start: string; end: string };
@@ -118,6 +120,7 @@ export const api = {
   me: () => call<Me>("/api/auth/me"),
   logout: () => call<{ ok: boolean }>("/api/auth/logout", send("POST")),
   config: () => call<Config>("/api/config"),
+  putClients: (rows: ClientConfig[]) => call<{ ok: boolean }>("/api/clients", send("PUT", rows)),
   setupStatus: () => call<{ client_secret: boolean }>("/api/setup-status"),
   settings: () => call<Settings>("/api/settings"),
   importClientSecret: (content: string) => call<{ ok: boolean }>("/api/settings/client-secret", send("PUT", { content })),
