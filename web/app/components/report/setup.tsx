@@ -91,6 +91,8 @@ export function Setup({ config, hasReport, onBack, onStart }: { config: Config; 
       onStart(await api.startJob({ tab, start, end, style_id: styleId || undefined, clients: config.clients.map((c) => c.name).filter((n) => picked.includes(n)) }));
     } catch (e) {
       setError((e as Error).message);
+    } finally {
+      // This page stays alive in the background while the report is open, so a stuck "Starting" would still be here on "Start over".
       setBusy(false);
     }
   }
