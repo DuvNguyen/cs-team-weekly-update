@@ -221,3 +221,50 @@ def test_bad_direction_and_unknown_part_are_rejected():
         ep.move_part(parts, parts[1]["id"], "sideways")
     with pytest.raises(ValueError, match="part"):
         ep.move_part(parts, "nope", "up")
+
+
+def five_sections():
+    return build([{"title": t, "text": t.lower()} for t in "ABCDE"])       # greeting=1, A=2 ... E=6, sign-off=7
+
+
+def test_a_part_can_be_sent_to_a_typed_position_and_the_others_shift_over():
+    parts = five_sections()
+    ep.move_part_to(parts, parts[1]["id"], 5)                               # A (2) to position 5
+    assert kinds_titles(parts) == ["greeting", "B", "C", "D", "A", "E", "signoff"]
+    ep.move_part_to(parts, parts[5]["id"], 2)                               # E (6) to position 2
+    assert kinds_titles(parts) == ["greeting", "E", "B", "C", "D", "A", "signoff"]
+    assert ep.compose_body(parts).index("E\ne") < ep.compose_body(parts).index("B\nb")
+
+
+def test_typed_positions_must_stay_between_the_greeting_and_the_sign_off():
+    parts = five_sections()
+    for bad in (1, 7, 0, 8, -3):
+        with pytest.raises(ValueError, match="from 2 to 6"):
+            ep.move_part_to(parts, parts[2]["id"], bad)
+    assert kinds_titles(parts) == ["greeting", "A", "B", "C", "D", "E", "signoff"]
+
+
+def test_the_same_position_changes_nothing_and_the_ends_cannot_be_moved_by_number():
+    parts = five_sections()
+    ep.move_part_to(parts, parts[2]["id"], 3)
+    assert kinds_titles(parts) == ["greeting", "A", "B", "C", "D", "E", "signoff"]
+    with pytest.raises(ValueError, match="fixed"):
+        ep.move_part_to(parts, parts[0]["id"], 3)
+    with pytest.raises(ValueError, match="fixed"):
+        ep.move_part_to(parts, parts[-1]["id"], 3)
+
+
+def test_positions_must_be_whole_numbers_and_the_part_must_exist():
+    parts = five_sections()
+    for bad in ("two", 2.5, None, True):
+        with pytest.raises(ValueError, match="number"):
+            ep.move_part_to(parts, parts[1]["id"], bad)
+    with pytest.raises(ValueError, match="part"):
+        ep.move_part_to(parts, "nope", 3)
+
+
+def test_moving_by_number_keeps_the_review_state():
+    parts = five_sections()
+    ep.update_part(parts, parts[1]["id"], {"status": "confirmed"}, CTX)
+    ep.move_part_to(parts, parts[1]["id"], 4)
+    assert next(p for p in parts if p["title"] == "A")["status"] == "confirmed"

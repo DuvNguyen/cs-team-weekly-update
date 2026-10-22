@@ -227,3 +227,21 @@ def test_regenerate_rebuilds_the_parts_and_resets_the_reviews(api):
     assert "My own wording." not in c["body"] and "shorter" in c["body"]            # the demo text echoes the instruction
     assert [p["status"] for p in c["parts"]] == ["confirmed", "review", "review", "review", "confirmed"]
     assert c["parts_reviewed"] == 2 and not c["ready"]
+
+
+def test_a_part_can_be_moved_to_a_typed_position(api):
+    job = ready_job(api)
+    trends = part(job, "trends")                                    # greeting, section, notes, trends, sign-off
+    r = api.post(f"/api/jobs/{job['id']}/clients/Alpha/parts/{trends['id']}/move", json={"position": 2})
+    assert r.status_code == 200
+    assert [p["kind"] for p in r.json()["parts"]] == ["greeting", "trends", "section", "notes", "signoff"]
+
+
+def test_a_bad_typed_position_or_an_unclear_request_is_refused(api):
+    job = ready_job(api)
+    sec = part(job, "section")
+    url = f"/api/jobs/{job['id']}/clients/Alpha/parts/{sec['id']}/move"
+    assert api.post(url, json={"position": 1}).status_code == 400            # the greeting's place
+    assert api.post(url, json={"position": 5}).status_code == 400            # the sign-off's place
+    assert api.post(url, json={}).status_code == 400                         # neither a direction nor a position
+    assert api.post(url, json={"direction": "up", "position": 3}).status_code == 400   # both

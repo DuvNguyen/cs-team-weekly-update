@@ -310,12 +310,17 @@ def update_client_part(job: dict, name: str, part_id: str, patch: dict) -> dict:
     return client_view(job, c)
 
 
-def move_client_part(job: dict, name: str, part_id: str, direction: str) -> dict:
-    """Move one part of a client's email up or down and rebuild the email text in the new order."""
+def move_client_part(job: dict, name: str, part_id: str, direction: str | None = None, position: int | None = None) -> dict:
+    """Move one part of a client's email one step up or down, or to a typed position, and rebuild the email text."""
     c = next(x for x in job["clients"] if x["name"] == name)
     if not c.get("parts"):
         raise ValueError("This email has no parts to move yet.")
-    email_parts.move_part(c["parts"], part_id, direction)
+    if (direction is None) == (position is None):
+        raise ValueError("Say either a direction or a position.")
+    if position is not None:
+        email_parts.move_part_to(c["parts"], part_id, position)
+    else:
+        email_parts.move_part(c["parts"], part_id, direction)
     c["body"] = email_parts.compose_body(c["parts"])
     return client_view(job, c)
 

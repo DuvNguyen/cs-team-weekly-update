@@ -7,10 +7,19 @@ import { Alert, Badge } from "../ui/feedback";
 import { PartTag } from "../ui/part-tag";
 
 /* One part of the email: heading, content, where it came from, and Confirm / Edit / Delete. */
-function PartCard({ part, busy, onPatch, onMove }: { part: Part; busy: boolean; onPatch: (b: { title?: string; text?: string; status?: Part["status"] }) => Promise<void>; onMove?: { up: (() => void) | null; down: (() => void) | null } }) {
+function PartCard({ part, number, total, busy, onPatch, onMove, onMoveTo }: {
+  part: Part;
+  number: number;
+  total: number;
+  busy: boolean;
+  onPatch: (b: { title?: string; text?: string; status?: Part["status"] }) => Promise<void>;
+  onMove?: { up: (() => void) | null; down: (() => void) | null };
+  onMoveTo?: (position: number) => Promise<void>;
+}) {
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(part.title);
   const [text, setText] = useState(part.text);
+  const [order, setOrder] = useState(String(number));
   const { check } = part;
   const flagged = check.flags.length > 0;
   const deleted = part.status === "deleted";
@@ -18,8 +27,13 @@ function PartCard({ part, busy, onPatch, onMove }: { part: Part; busy: boolean; 
   const lineTags = new Map(check.lines.map((l) => [l.text.trim(), l.tag]));
   const label = part.title || { greeting: "Greeting", signoff: "Sign-off", section: "Paragraph", notes: "SEO team notes", trends: "SEO trends / news", trend: "Industry trend" }[part.kind];
 
+  // The typed order: a whole number from 2 (after the greeting) to the one before the sign-off.
+  const wanted = /^\d+$/.test(order.trim()) ? Number(order) : NaN;
+  const orderOk = !onMoveTo || (wanted >= 2 && wanted <= total - 1);
+
   async function save() {
-    await onPatch({ title, text });
+    if (title !== part.title || text !== part.text) await onPatch({ title, text });
+    if (onMoveTo && wanted !== number) await onMoveTo(wanted);
     setEditing(false);
   }
 
@@ -29,7 +43,10 @@ function PartCard({ part, busy, onPatch, onMove }: { part: Part; busy: boolean; 
       style={{ borderLeftColor: confirmed ? (flagged ? "#e0a800" : "#22c55e") : flagged ? "#d64545" : "#3165f5" }}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <strong className={deleted ? "line-through" : "text-indigo"}>{label}</strong>
+        <span className="flex min-w-0 items-center gap-2.5">
+          <span aria-label={`Part ${number}`} title={`Part ${number} of ${total}`} className="grid size-6 shrink-0 place-items-center rounded-full bg-brand-050 font-display text-xs font-semibold text-brand-600">{number}</span>
+          <strong className={deleted ? "line-through" : "text-indigo"}>{label}</strong>
+        </span>
         <div className="flex items-center gap-1.5">
           {onMove && (
             <span className="mr-1 inline-flex items-center gap-0.5">
@@ -66,6 +83,20 @@ function PartCard({ part, busy, onPatch, onMove }: { part: Part; busy: boolean; 
                 <input className="field !py-1.5" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Heading (empty for plain paragraphs)" aria-label="Heading" />
               )}
               <textarea className="field min-h-32 max-h-[60vh] [field-sizing:content]" value={text} onChange={(e) => setText(e.target.value)} aria-label={`${label} text`} />
+              {onMoveTo && (
+                <div className="flex flex-wrap items-center gap-2 text-sm">
+                  <label htmlFor={`order-${part.id}`} className="font-semibold text-indigo">Order</label>
+                  <input
+                    id={`order-${part.id}`}
+                    inputMode="numeric"
+                    value={order}
+                    onChange={(e) => setOrder(e.target.value)}
+                    aria-invalid={!orderOk}
+                    className="field !w-16 !py-1 text-center"
+                  />
+                  <span className={orderOk ? "text-grey-600" : "text-danger"}>Type a number from 2 to {total - 1} to move this part there.</span>
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-1 whitespace-pre-wrap leading-relaxed">
@@ -94,10 +125,10 @@ function PartCard({ part, busy, onPatch, onMove }: { part: Part; busy: boolean; 
           <div className="flex flex-wrap gap-2">
             {editing ? (
               <>
-                <button type="button" disabled={busy} onClick={save} className="btn btn-primary !px-3 !py-1 text-sm !text-white">
+                <button type="button" disabled={busy || !orderOk} onClick={save} className="btn btn-primary !px-3 !py-1 text-sm !text-white">
                   <Save size={14} /> Save changes
                 </button>
-                <button type="button" onClick={() => (setEditing(false), setTitle(part.title), setText(part.text))} className="btn btn-outline !px-3 !py-1 text-sm">Cancel</button>
+                <button type="button" onClick={() => (setEditing(false), setTitle(part.title), setText(part.text), setOrder(String(number)))} className="btn btn-outline !px-3 !py-1 text-sm">Cancel</button>
               </>
             ) : (
               <>
@@ -112,7 +143,7 @@ function PartCard({ part, busy, onPatch, onMove }: { part: Part; busy: boolean; 
                     <Check size={14} /> {flagged ? "Confirm anyway" : "Confirm"}
                   </button>
                 )}
-                <button type="button" onClick={() => (setTitle(part.title), setText(part.text), setEditing(true))} className="btn btn-outline !px-3 !py-1 text-sm">
+                <button type="button" onClick={() => (setTitle(part.title), setText(part.text), setOrder(String(number)), setEditing(true))} className="btn btn-outline !px-3 !py-1 text-sm">
                   <Pencil size={14} /> Edit
                 </button>
                 <button type="button" disabled={busy} onClick={() => onPatch({ status: "deleted" })} className="btn btn-outline !px-3 !py-1 text-sm !text-danger">
@@ -163,6 +194,19 @@ export function EmailParts({ job, c, onChanged }: { job: Job; c: ClientRow; onCh
     }
   }
 
+  async function moveTo(part: Part, position: number) {
+    setBusy(true);
+    setError("");
+    try {
+      await api.movePartTo(job.id, c.name, part.id, position);
+      await onChanged();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function patch(part: Part, b: { title?: string; text?: string; status?: Part["status"] }) {
     setBusy(true);
     setError("");
@@ -205,7 +249,18 @@ export function EmailParts({ job, c, onChanged }: { job: Job; c: ClientRow; onCh
             up: c.parts[i - 1]?.kind === "greeting" ? null : () => move(p, "up"),
             down: c.parts[i + 1]?.kind === "signoff" ? null : () => move(p, "down"),
           };
-          return <PartCard key={`${p.id}-${p.text.length}-${p.status}`} part={p} busy={busy} onPatch={(b) => patch(p, b)} onMove={onMove} />;
+          return (
+            <PartCard
+              key={`${p.id}-${p.text.length}-${p.status}-${i}`}
+              part={p}
+              number={i + 1}
+              total={c.parts.length}
+              busy={busy}
+              onPatch={(b) => patch(p, b)}
+              onMove={onMove}
+              onMoveTo={fixed ? undefined : (n) => moveTo(p, n)}
+            />
+          );
         })}
       </ol>
     </div>

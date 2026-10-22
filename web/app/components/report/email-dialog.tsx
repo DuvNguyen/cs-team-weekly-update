@@ -49,7 +49,7 @@ export function EmailDialog(props: {
       onClick={(e) => {
         if (e.target === ref.current) ref.current?.close();
       }}
-      className="m-auto w-[min(72rem,calc(100vw-2rem))] max-w-none rounded-[var(--radius-lg)] bg-white p-0 shadow-[var(--shadow-lg)] backdrop:bg-[rgba(6,21,40,0.55)]"
+      className="m-auto w-[min(72rem,calc(100vw-2rem))] max-w-none overflow-hidden rounded-[var(--radius-lg)] bg-white p-0 shadow-[var(--shadow-lg)] backdrop:bg-[rgba(6,21,40,0.55)]"
     >
       <div className="flex max-h-[calc(100dvh-2rem)] flex-col">
         <header className="flex items-start justify-between gap-4 border-b border-grey-200 px-8 py-5">

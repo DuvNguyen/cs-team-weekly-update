@@ -78,6 +78,19 @@ def move_part(parts: list[dict], part_id: str, direction: str) -> None:
     parts[i], parts[j] = parts[j], parts[i]
 
 
+def move_part_to(parts: list[dict], part_id: str, position: int) -> None:
+    """Put a part at a typed position (1 = the greeting, so 2 to the number before the sign-off). The others shift over."""
+    part = _find(parts, part_id)
+    if not isinstance(position, int) or isinstance(position, bool):
+        raise ValueError("The position must be a whole number.")
+    if part["kind"] in FIXED:
+        raise ValueError("The greeting and the sign-off are fixed in place.")
+    if not 2 <= position <= len(parts) - 1:
+        raise ValueError(f"Choose a position from 2 to {len(parts) - 1}.")
+    parts.remove(part)
+    parts.insert(position - 1, part)
+
+
 def update_part(parts: list[dict], part_id: str, patch: dict, ctx: dict) -> dict:
     """Edit, confirm, delete or restore one part. Editing makes it need a new confirmation.
     A part with untraceable details can still be confirmed: the person decides, and the warning stays visible."""

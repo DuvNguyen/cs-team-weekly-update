@@ -42,7 +42,8 @@ class PartPatch(BaseModel):
 
 
 class MoveIn(BaseModel):
-    direction: str
+    direction: str | None = None      # one step up or down ...
+    position: int | None = None       # ... or a typed position (1 = the greeting)
 
 
 class Regen(BaseModel):
@@ -195,7 +196,7 @@ def move_part(job_id: str, name: str, part_id: str, body: MoveIn, user: dict = D
     job = _job(job_id, user)
     _client(job, name)
     try:
-        return pipeline.move_client_part(job, name, part_id, body.direction)
+        return pipeline.move_client_part(job, name, part_id, body.direction, body.position)
     except ValueError as e:
         raise HTTPException(400, str(e))
 
