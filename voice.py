@@ -40,3 +40,6 @@ efforts. Because we have been unable to push new content live due to the blogs h
 yet, our visibility is currently limited to users who already know the brand name. To regain
 momentum, our focus next week is on clearing that content backlog."
 """
+
+# Email layout (sections) of the chosen style; voice_store.render_structure fills it per job. Empty = one paragraph.
+STRUCTURE = ""

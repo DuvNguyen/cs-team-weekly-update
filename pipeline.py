@@ -158,10 +158,12 @@ def _demo_series(seed: int, start: datetime.date, end: datetime.date) -> dict:
     return gsc.parse(rows)
 
 
-def _prompt(style: dict, name: str, category: str, series: dict, prev: dict, this_week: str, next_week: str) -> str:
-    """report.build_prompt, but written in the chosen style (stays unchanged, reads voice.VOICE/EXAMPLES)."""
+def _prompt(style: dict, name: str, category: str, series: dict, prev: dict, this_week: str, next_week: str,
+            start: datetime.date, end: datetime.date) -> str:
+    """report.build_prompt, but written in the chosen style (stays unchanged, reads voice.VOICE/EXAMPLES/STRUCTURE)."""
     with _voice_lock:
         voice.VOICE, voice.EXAMPLES = voice_store.render(style)
+        voice.STRUCTURE = voice_store.render_structure(style, start, end)
         return report.build_prompt(name, category, series, prev, this_week, next_week)
 
 
@@ -263,7 +265,7 @@ def generate_client(job: dict, c: dict, config: dict, svc) -> None:
         os.makedirs(OUT_DIR, exist_ok=True)
         chart.render(series, f"{c['name']} — {c['property']}", chart_path(job, c["name"]))
         if summary is None:
-            prompt = _prompt(style, c["name"], c["category"], series, prev, this_week, next_week)
+            prompt = _prompt(style, c["name"], c["category"], series, prev, this_week, next_week, start, end)
             with _api_lock:
                 summary = _generate(svc["gemini"], prompt)
         trend, sources = job["_trends"].get(c["category"], ("", []))
@@ -279,7 +281,8 @@ def generate_client(job: dict, c: dict, config: dict, svc) -> None:
 
 def _email(config: dict, cfg: dict, c: dict, summary: str, ctx: dict) -> str:
     """The client email: greeting, the summary + SEO notes (compose_body), sign-off."""
-    body = report.compose_body(summary, ctx["this_week"], ctx["next_week"], c["category"], ctx["trend"], ctx["sources"])
+    structured = voice_store.has_structure(voice_store.get_style(c.get("style_id")))     # the sections already cover the work
+    body = report.compose_body(summary, ctx["this_week"], ctx["next_week"], c["category"], ctx["trend"], ctx["sources"], notes=not structured)
     hi = cfg.get("contact") or f"{c['name']} team"
     sender = config.get("sender", "Mimi Pham")
     return f"Hi {hi},\n\n{body}\n\nBest regards,\n{sender}\nSaigon Digital"
@@ -301,7 +304,8 @@ def regenerate_client(job: dict, name: str, instruction: str, style_id: str | No
     if DEMO:
         summary = f"Demo summary for {name} in the style “{style['name']}”, rewritten with your instruction: {instruction or 'none'}."
     else:
-        prompt = _prompt(style, name, c["category"], ctx["series"], ctx["prev"], ctx["this_week"], ctx["next_week"])
+        prompt = _prompt(style, name, c["category"], ctx["series"], ctx["prev"], ctx["this_week"], ctx["next_week"],
+                         datetime.date.fromisoformat(job["start"]), datetime.date.fromisoformat(job["end"]))
         if instruction:
             prompt += f"\n\nExtra instruction from the account manager (follow it, keep the rules above): {instruction}"
         svc = services(config, job["_email"])
@@ -403,11 +407,21 @@ def export_docx(job: dict) -> tuple:
     return buf.getvalue(), f"SEO-Report_{job['start']}_to_{job['end']}.docx"
 
 
+def analyze_structure(email_text: str) -> dict:
+    """Propose the email's sections for review (nothing is saved). The email stays the source; every excerpt is checked against it."""
+    import structure_draft
+    if DEMO:
+        return structure_draft.paragraphs(email_text)
+    return structure_draft.analyze(genai.Client(api_key=load_config()["gemini_api_key"]), report.MODEL, email_text)
+
+
 def analyze_style(email_text: str) -> dict:
     """Draft a writing style from a pasted email (nothing is saved)."""
     if DEMO:
         return {"id": "demo", "name": "Demo style", "persona": "Write as an account manager sending a client update.",
                 "style": [{"id": "d1", "text": "Keep it short and friendly.", "enabled": True}],
                 "avoid": [{"id": "d2", "text": "Jargon.", "enabled": True}],
-                "examples": [{"id": "d3", "label": "the email this style came from", "text": email_text.strip(), "enabled": True}]}
+                "examples": [{"id": "d3", "label": "the email this style came from", "text": email_text.strip(), "enabled": True}],
+                "structure": [{"id": "d4", "title": "Performance overview", "instruction": "Clicks, impressions and position with meaning.", "enabled": True},
+                              {"id": "d5", "title": "Next steps ({next_period})", "instruction": "A bulleted list of the plan.", "enabled": True}]}
     return voice_store.analyze(genai.Client(api_key=load_config()["gemini_api_key"]), report.MODEL, email_text)

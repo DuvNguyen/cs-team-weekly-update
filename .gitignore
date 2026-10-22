@@ -17,3 +17,6 @@ data/
 # Word/Office lock files
 .~*
 ~$*
+
+# Brainstorming / plan scratch
+.superpowers/

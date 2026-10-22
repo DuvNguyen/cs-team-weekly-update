@@ -51,7 +51,15 @@ export function Setup({ config, hasReport, onBack, onStart }: { config: Config; 
     api.tabs().then((r) => setTabs(r.tabs)).catch((e) => setTabsError(e.message));
   }, []);
 
+  // Monday to Friday of the week we're standing on (local date).
+  const thisWeek = useMemo(() => {
+    const t = new Date();
+    const today = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
+    const monday = addDays(today, -((t.getDay() + 6) % 7));
+    return { start: monday, end: addDays(monday, 4) };
+  }, []);
   const presets = [
+    { label: "This week", range: thisWeek },
     { label: "Last 7 days", days: 7 },
     { label: "Last 14 days", days: 14 },
     { label: "Last 30 days", days: 30 },
@@ -109,17 +117,18 @@ export function Setup({ config, hasReport, onBack, onStart }: { config: Config; 
             <div className="flex flex-wrap gap-2" role="group" aria-label="Period presets">
               {presets.map((p) => {
                 const last = latest ?? config.period.end;
-                const s = addDays(last, -(p.days - 1));
-                const on = start === s && end === last;
+                const s = p.range ? p.range.start : addDays(last, -(p.days - 1));
+                const e = p.range ? p.range.end : last;
+                const on = start === s && end === e;
                 return (
                   <button
-                    key={p.days}
+                    key={p.label}
                     type="button"
                     aria-pressed={on}
                     onClick={() => {
                       setTouched(true);
                       setStart(s);
-                      setEnd(last);
+                      setEnd(e);
                     }}
                     className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors duration-[var(--dur-fast)] ${
                       on ? "bg-brand text-white" : "bg-brand-050 text-brand-600 hover:bg-brand-100"

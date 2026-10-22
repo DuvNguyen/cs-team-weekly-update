@@ -84,6 +84,16 @@ class AnalyzeIn(BaseModel):
     email: str
 
 
+@api.post("/api/voice/structure/analyze")
+def analyze_structure(body: AnalyzeIn):
+    try:
+        return pipeline.analyze_structure(body.email)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except Exception as e:
+        raise HTTPException(502, f"Could not analyse the email: {str(e).splitlines()[0][:150]}")
+
+
 @api.post("/api/voice/analyze")
 def analyze_voice(body: AnalyzeIn):
     try:

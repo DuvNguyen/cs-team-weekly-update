@@ -1,11 +1,13 @@
 "use client";
 
-import { Copy, Plus, RotateCcw, Save, Sparkles, Star, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Copy, Plus, RotateCcw, Save, Sparkles, Star, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { api, type Example, type Rule, type Style, type Voice } from "../../lib/api";
+import { api, type Example, type Rule, type Section, type Style, type StructureDraft, type Voice } from "../../lib/api";
 import { Card } from "../ui/card";
 import { Checkbox } from "../ui/checkbox";
 import { Alert, Skeleton } from "../ui/feedback";
+import { SourceTag } from "../ui/source-tag";
+import { StructureReview } from "./structure-review";
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
@@ -110,6 +112,126 @@ function ExampleList({ examples, onChange }: { examples: Example[]; onChange: (e
   );
 }
 
+/* The email's sections in order: a heading (optional) and what goes under it. {period} / {next_period} in a heading become dates. */
+function StructureEditor({ style, onChange }: { style: Section[]; onChange: (s: Section[]) => void }) {
+  const [pasted, setPasted] = useState("");
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const [draft, setDraft] = useState<StructureDraft | null>(null);
+  const set = (id: string, patch: Partial<Section>) => onChange(style.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+  const move = (i: number, d: number) => {
+    const next = [...style];
+    [next[i], next[i + d]] = [next[i + d], next[i]];
+    onChange(next);
+  };
+  async function fill() {
+    setBusy(true);
+    setErr("");
+    try {
+      setDraft(await api.analyzeStructure(pasted));
+      setOpen(false);
+      setPasted("");
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  if (draft) {
+    return (
+      <StructureReview
+        draft={draft}
+        onSave={(sections) => {
+          onChange(sections);
+          setDraft(null);
+        }}
+        onCancel={() => setDraft(null)}
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      {style.length === 0 && <p className="text-grey-600">No sections. The email is one paragraph, followed by the SEO team&rsquo;s notes.</p>}
+      <ul className="space-y-4">
+        {style.map((r, i) => (
+          <li key={r.id} className={`rounded-[var(--radius-md)] border border-grey-200 p-4 transition-opacity duration-[var(--dur-fast)] ${r.enabled ? "" : "opacity-50"}`}>
+            <div className="mb-3 flex items-center gap-3">
+              <Checkbox checked={r.enabled} onChange={(v) => set(r.id, { enabled: v })}>
+                <span className="sr-only">Use this section</span>
+              </Checkbox>
+              <input
+                value={r.title}
+                onChange={(e) => set(r.id, { title: e.target.value, title_source: "you" })}
+                placeholder="Heading (leave empty for plain paragraphs)"
+                aria-label="Section heading"
+                className="field min-w-0 flex-1 !py-2"
+              />
+              <button type="button" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Move up" className="grid size-9 shrink-0 place-items-center rounded-full text-grey-600 hover:bg-grey-100 disabled:opacity-30">
+                <ArrowUp size={16} />
+              </button>
+              <button type="button" onClick={() => move(i, 1)} disabled={i === style.length - 1} aria-label="Move down" className="grid size-9 shrink-0 place-items-center rounded-full text-grey-600 hover:bg-grey-100 disabled:opacity-30">
+                <ArrowDown size={16} />
+              </button>
+              <button
+                type="button"
+                onClick={() => onChange(style.filter((x) => x.id !== r.id))}
+                aria-label="Delete section"
+                className="grid size-9 shrink-0 place-items-center rounded-full text-grey-600 transition-colors duration-[var(--dur-fast)] hover:bg-danger-050 hover:text-danger"
+              >
+                <Trash2 size={18} />
+              </button>
+            </div>
+            <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-grey-600">
+              HEADING <SourceTag source={r.title_source} /> CONTENT <SourceTag source={r.instruction_source} />
+            </div>
+            <textarea
+              value={r.instruction}
+              onChange={(e) => set(r.id, { instruction: e.target.value, instruction_source: "you" })}
+              rows={3}
+              placeholder="What goes in this section, e.g. a bulleted list of the work done"
+              aria-label="What goes in this section"
+              className="field w-full resize-y leading-relaxed"
+            />
+          </li>
+        ))}
+      </ul>
+      <div className="flex flex-wrap gap-3">
+        <button type="button" onClick={() => onChange([...style, { id: uid(), title: "", instruction: "", enabled: true }])} className="btn btn-outline">
+          <Plus size={16} />
+          Add a section
+        </button>
+        <button type="button" onClick={() => setOpen(!open)} className="btn btn-outline">
+          <Sparkles size={16} />
+          Read sections from an email
+        </button>
+      </div>
+      {open && (
+        <div className="rounded-[var(--radius-md)] bg-grey-100 p-4">
+          <label htmlFor="structure-email" className="label">Paste an email with the layout you want</label>
+          <textarea
+            id="structure-email"
+            value={pasted}
+            onChange={(e) => setPasted(e.target.value)}
+            rows={8}
+            placeholder="Paste a full email. Gemini proposes its sections, then you review each one before anything is replaced."
+            className="field w-full resize-y leading-relaxed"
+          />
+          {err && <p className="mt-2 text-sm text-danger">{err}</p>}
+          <div className="mt-3 flex gap-3">
+            <button type="button" onClick={fill} disabled={!pasted.trim() || busy} className="btn btn-primary">
+              <Sparkles size={16} />
+              {busy ? "Reading the email" : "Read the email"}
+            </button>
+            <button type="button" onClick={() => setOpen(false)} className="btn-link">Cancel</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* Several named writing styles. One is the default; a style is picked per report. */
 export function VoiceManager() {
   const [saved, setSaved] = useState<Voice | null>(null);
@@ -166,7 +288,7 @@ export function VoiceManager() {
 
   function createManual() {
     const base = draft!.styles.find((s) => s.id === draft!.default_id) ?? draft!.styles[0];
-    addStyle({ id: uid(), name: newName.trim(), persona: base.persona, style: [], avoid: [], examples: [] });
+    addStyle({ id: uid(), name: newName.trim(), persona: base.persona, style: [], avoid: [], examples: [], structure: [] });
   }
 
   async function generate() {
@@ -189,7 +311,7 @@ export function VoiceManager() {
     let name = `${current.name} copy`;
     while (draft!.styles.some((x) => x.name.toLowerCase() === name.toLowerCase())) name += " 2";
     const fresh = <T extends { id: string }>(rows: T[]) => rows.map((r) => ({ ...r, id: uid() }));
-    addStyle({ ...current, id: uid(), name, style: fresh(current.style), avoid: fresh(current.avoid), examples: fresh(current.examples) });
+    addStyle({ ...current, id: uid(), name, style: fresh(current.style), avoid: fresh(current.avoid), examples: fresh(current.examples), structure: fresh(current.structure ?? []) });
   }
 
   function remove() {
@@ -341,15 +463,19 @@ export function VoiceManager() {
                 <textarea id="persona" value={current.persona} onChange={(e) => update({ persona: e.target.value })} rows={2} className="field w-full resize-y leading-relaxed" />
               </Card>
 
-              <Card title="Style rules" i={1} aside={<span className="text-sm text-grey-600">Things the writer should do</span>}>
+              <Card title="Email structure" i={1} aside={<span className="text-sm text-grey-600">The sections the email is built from</span>}>
+                <StructureEditor key={current.id} style={current.structure ?? []} onChange={(structure) => update({ structure })} />
+              </Card>
+
+              <Card title="Style rules" i={2} aside={<span className="text-sm text-grey-600">Things the writer should do</span>}>
                 <RuleList key={current.id} rules={current.style} onChange={(style) => update({ style })} placeholder="e.g. Keep it under 120 words" />
               </Card>
 
-              <Card title="Avoid" i={2} aside={<span className="text-sm text-grey-600">Things the writer must not do</span>}>
+              <Card title="Avoid" i={3} aside={<span className="text-sm text-grey-600">Things the writer must not do</span>}>
                 <RuleList key={current.id} rules={current.avoid} onChange={(avoid) => update({ avoid })} placeholder="e.g. Exclamation marks" />
               </Card>
 
-              <Card title="Examples" i={3} aside={<span className="text-sm text-grey-600">Real emails the model copies the tone from</span>}>
+              <Card title="Examples" i={4} aside={<span className="text-sm text-grey-600">Real emails the model copies the tone from</span>}>
                 <ExampleList examples={current.examples} onChange={(examples) => update({ examples })} />
               </Card>
             </>

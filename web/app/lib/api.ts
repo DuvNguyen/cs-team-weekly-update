@@ -29,7 +29,11 @@ export type Job = {
 
 export type Rule = { id: string; text: string; enabled: boolean };
 export type Example = { id: string; label: string; text: string; enabled: boolean };
-export type Style = { id: string; name: string; persona: string; style: Rule[]; avoid: Rule[]; examples: Example[] };
+export type Source = "email" | "ai" | "you" | "none" | "";   // where a heading or note came from
+export type Section = { id: string; title: string; instruction: string; enabled: boolean; title_source?: Source; instruction_source?: Source };
+export type DraftSection = { id: string; title: string; title_source: Source; excerpt: string; found: boolean; start: number | null; end: number | null; note: string; note_source: Source };
+export type StructureDraft = { email: string; sections: DraftSection[] };
+export type Style = { id: string; name: string; persona: string; style: Rule[]; avoid: Rule[]; examples: Example[]; structure: Section[] };
 export type Voice = { styles: Style[]; default_id: string };
 
 export type Config = {
@@ -99,6 +103,7 @@ export const api = {
   importEnv: (content: string) => call<{ updated: string[] }>("/api/settings/env", send("PUT", { content })),
   voice: () => call<Voice>("/api/voice"),
   saveVoice: (v: Voice) => call<Voice>("/api/voice", send("PUT", v)),
+  analyzeStructure: (email: string) => call<StructureDraft>("/api/voice/structure/analyze", send("POST", { email })),
   analyzeStyle: (email: string) => call<Style>("/api/voice/analyze", send("POST", { email })),
   resetVoice: () => call<Voice>("/api/voice/reset", send("POST")),
   period: () => call<{ end: string }>("/api/period"),
