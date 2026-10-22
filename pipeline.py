@@ -226,7 +226,7 @@ def _load_sheet(job, config, svc):
         return
     try:
         with _api_lock:
-            job["_rows"] = updates.fetch_rows(svc["sheets"], sheet_id, f"'{tab}'!A1:C300")
+            job["_rows"] = updates.fetch_rows(svc["sheets"], sheet_id, f"'{tab}'!A1:Z300")
     except Exception as e:
         job["message"] = f"Tab '{tab}' not found — continuing with charts only. ({str(e).splitlines()[0][:80]})"
 
@@ -256,12 +256,14 @@ def generate_client(job: dict, c: dict, config: dict, svc) -> None:
         this_week, next_week = updates.match(job["_rows"], key)
         this_week, next_week = cfg.get("this_week", this_week), cfg.get("next_week", next_week)
         this_week, next_week = clean_notes(this_week), clean_notes(next_week)
+        sheet_trends = cfg.get("trends", updates.match_trends(job["_rows"], key))      # the sheet's "SEO Trends/News" cell
         if DEMO:
             seed = sum(map(ord, c["name"]))
             series, prev = _demo_series(seed, start, end), _demo_series(seed + 1, pstart, pend)
             summary = (f"Demo summary for {c['name']} in the style “{style['name']}”: clicks and impressions moved against the previous "
                        "period while our average position held steady. Next, our focus is on the content queue.")
             this_week = this_week or "Published two blog posts."
+            sheet_trends = sheet_trends or "Demo trend: a competitor launched a new campaign."
             next_week = next_week or "Refresh the top landing pages."
         else:
             with _api_lock:
@@ -276,7 +278,7 @@ def generate_client(job: dict, c: dict, config: dict, svc) -> None:
                 summary = _generate(svc["gemini"], prompt, as_json=voice_store.has_structure(style))
         trend, sources = job["_trends"].get(c["category"], ("", []))
         ctx = job.setdefault("_ctx", {})[c["name"]] = dict(series=series, prev=prev, this_week=this_week,
-                                                            next_week=next_week, trend=trend, sources=sources)
+                                                            next_week=next_week, trend=trend, sources=sources, trends=sheet_trends)
         _assemble(config, cfg, c, summary, ctx)
         c["totals"], c["prev_totals"] = series["totals"], prev["totals"]
         c["has_chart"], c["status"] = True, "ok"

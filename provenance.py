@@ -96,6 +96,8 @@ def check_part(part: dict, ctx: dict) -> dict:
         out["tags"] = ["notes"]
     elif kind == "trend":
         out["tags"] = ["trend"]
+    elif kind == "trends":                      # the SEO sheet's "Trends/News" cell, shown as written
+        out["tags"] = ["sheet"]
     else:
         allowed, notes = allowed_numbers(ctx), f"{ctx.get('this_week', '')}\n{ctx.get('next_week', '')}"
         for token in numbers_in(text):

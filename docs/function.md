@@ -18,6 +18,7 @@ Set `WUT_DEMO=1` to run the whole flow on fake data, with no Google sign-in and 
 | | `parse(rows)` | Totals the rows. CTR to one decimal, position is impression-weighted to one decimal. |
 | `chart.py` | `render(series, title, out_path)` | Draws the PNG: four stat tiles plus a clicks and impressions line chart. |
 | `updates.py` | `fetch_rows(...)` / `match(rows, client_name)` | Reads the SEO team's sheet tab and finds that client's "this week" and "next week" notes. |
+| | `trends_column(rows)` / `match_trends(rows, client_name)` | Finds the column headed "SEO Trends/News" and returns the client's cell as written. It becomes an optional part in the Review tab: left out of the email and the document unless confirmed. |
 | `trends.py` | `for_category(gemini, category, model)` | Optional industry-trend note per category (Gemini with Google Search). Off unless `include_industry_trends` is true. |
 | `voice.py` | (data only) | The original writing-style text (`VOICE`, `EXAMPLES`). It is now the factory default that `voice_store.py` parses. |
 | `report.py` | `build_prompt(...)` | Builds the Gemini prompt from the numbers, the notes and `voice.VOICE` / `voice.EXAMPLES`. |

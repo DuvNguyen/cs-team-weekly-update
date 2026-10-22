@@ -16,7 +16,7 @@ function PartCard({ part, busy, onPatch }: { part: Part; busy: boolean; onPatch:
   const deleted = part.status === "deleted";
   const confirmed = part.status === "confirmed";
   const lineTags = new Map(check.lines.map((l) => [l.text.trim(), l.tag]));
-  const label = part.title || { greeting: "Greeting", signoff: "Sign-off", section: "Paragraph", notes: "SEO team notes", trend: "Industry trend" }[part.kind];
+  const label = part.title || { greeting: "Greeting", signoff: "Sign-off", section: "Paragraph", notes: "SEO team notes", trends: "SEO trends / news", trend: "Industry trend" }[part.kind];
 
   async function save() {
     await onPatch({ title, text });
@@ -30,7 +30,7 @@ function PartCard({ part, busy, onPatch }: { part: Part; busy: boolean; onPatch:
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <strong className={deleted ? "line-through" : "text-indigo"}>{label}</strong>
-        {confirmed ? <Badge tone="green">Confirmed</Badge> : deleted ? <Badge>Deleted</Badge> : <Badge tone={flagged ? "danger" : "blue"}>{flagged ? "Check this" : "Needs review"}</Badge>}
+        {confirmed ? <Badge tone="green">Confirmed</Badge> : deleted ? <Badge>Deleted</Badge> : part.optional ? <Badge>Not in the email</Badge> : <Badge tone={flagged ? "danger" : "blue"}>{flagged ? "Check this" : "Needs review"}</Badge>}
       </div>
 
       {deleted ? (
@@ -46,9 +46,11 @@ function PartCard({ part, busy, onPatch }: { part: Part; busy: boolean; onPatch:
             {check.numbers.matched.length > 0 && <span className="text-xs text-grey-600">{check.numbers.matched.length} number{check.numbers.matched.length === 1 ? "" : "s"} match Search Console</span>}
           </div>
 
+          {part.optional && !confirmed && <p className="text-sm text-grey-600">Optional: this stays out of the email and the document unless you confirm it.</p>}
+
           {editing ? (
             <div className="space-y-2">
-              {(part.kind === "section" || part.kind === "notes" || part.kind === "trend") && (
+              {(part.kind === "section" || part.kind === "notes" || part.kind === "trends" || part.kind === "trend") && (
                 <input className="field !py-1.5" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Heading (empty for plain paragraphs)" aria-label="Heading" />
               )}
               <textarea className="field min-h-32 max-h-[60vh] [field-sizing:content]" value={text} onChange={(e) => setText(e.target.value)} aria-label={`${label} text`} />

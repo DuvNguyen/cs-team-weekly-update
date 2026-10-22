@@ -40,10 +40,10 @@ def patch(api, job, p, **body):
 def test_each_client_email_comes_back_as_parts_with_their_checks(api):
     job = ready_job(api)
     c = job["clients"][0]
-    assert [p["kind"] for p in c["parts"]] == ["greeting", "section", "notes", "signoff"]
+    assert [p["kind"] for p in c["parts"]] == ["greeting", "section", "notes", "trends", "signoff"]
     assert all("tags" in p["check"] for p in c["parts"])
     assert part(job, "greeting")["text"] == "Hi Sarah," and part(job, "greeting")["check"]["tags"] == ["template"]
-    assert c["parts_total"] == 4 and c["parts_reviewed"] == 2 and c["ready"] is False
+    assert c["parts_total"] == 4 and c["parts_reviewed"] == 2 and c["ready"] is False        # the optional trends part is not counted
 
 
 def test_confirming_every_part_makes_the_client_ready_and_export_works(api):
@@ -102,7 +102,7 @@ def test_confirm_all_endpoint_confirms_the_clean_parts_and_reports_the_rest(api)
     r = api.post(f"/api/jobs/{job['id']}/clients/Alpha/parts/confirm-all")
     assert r.status_code == 200
     body = r.json()
-    assert body["confirmed"] == 1 and body["needs_checking"] == 1          # the notes part is confirmed, the flagged one is not
+    assert body["confirmed"] == 2 and body["needs_checking"] == 1          # notes and trends are confirmed, the flagged one is not
     assert body["client"]["ready"] is False
     api.post(f"/api/jobs/{job['id']}/clients/Alpha/parts/confirm-all")      # pressing it again changes nothing
     assert api.get(f"/api/jobs/{job['id']}").json()["clients"][0]["parts_reviewed"] == 3
@@ -112,3 +112,17 @@ def test_confirm_all_makes_a_clean_client_ready(api):
     job = ready_job(api)
     body = api.post(f"/api/jobs/{job['id']}/clients/Alpha/parts/confirm-all").json()
     assert body["needs_checking"] == 0 and body["client"]["ready"] is True
+
+
+def test_the_sheets_trends_show_up_for_review_and_only_join_the_email_when_confirmed(api):
+    job = ready_job(api)
+    t = part(job, "trends")
+    assert t["optional"] is True and t["check"]["tags"] == ["sheet"] and t["status"] == "review"
+    assert t["text"] not in job["clients"][0]["body"]
+    for kind in ("section", "notes"):
+        patch(api, job, part(job, kind), status="confirmed")
+    j = api.get(f"/api/jobs/{job['id']}").json()
+    assert j["clients"][0]["ready"] is True                                  # the trends part doesn't block it
+    assert api.post(f"/api/jobs/{job['id']}/export").status_code == 200       # exported without the trends
+    c = patch(api, job, t, status="confirmed").json()
+    assert t["text"] in c["body"]

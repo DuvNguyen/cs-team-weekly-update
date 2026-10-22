@@ -91,3 +91,9 @@ def test_a_line_that_only_shares_one_word_with_a_note_is_still_flagged():
 def test_word_forms_match_across_singular_plural_and_tense():
     assert pv.traces_to_notes("- Published the pages", "Publish page")
     assert pv.traces_to_notes("- Titles were rewritten", "Rewrite title")
+
+
+def test_the_sheets_trends_part_is_tagged_as_coming_from_the_sheet_and_never_flagged():
+    c = check("Competitor launched a new school in 2026. Fees up 12%.", kind="trends")
+    assert c["tags"] == ["sheet"] and c["flags"] == []
+    assert check("Edited.", kind="trends", edited=True)["tags"] == ["sheet", "you"]

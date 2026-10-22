@@ -1,4 +1,4 @@
-export type PartTag = "template" | "gsc" | "notes" | "ai" | "trend" | "you";
+export type PartTag = "template" | "gsc" | "notes" | "sheet" | "ai" | "trend" | "you";
 export type PartCheck = {
   tags: PartTag[];
   numbers: { matched: string[]; unmatched: string[] };
@@ -7,11 +7,12 @@ export type PartCheck = {
 };
 export type Part = {
   id: string;
-  kind: "greeting" | "section" | "notes" | "trend" | "signoff";
+  kind: "greeting" | "section" | "notes" | "trends" | "trend" | "signoff";
   title: string;
   text: string;
   status: "review" | "confirmed" | "deleted";
   edited: boolean;
+  optional?: boolean;   // left out of the email unless confirmed
   check: PartCheck;
 };
 

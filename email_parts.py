@@ -27,8 +27,9 @@ def from_generation(raw: str, structured: bool) -> list[dict]:
     return [{"title": "", "text": raw}]
 
 
-def _part(kind: str, title: str, text: str, status: str = "review") -> dict:
-    return {"id": secrets.token_hex(4), "kind": kind, "title": title, "text": text, "status": status, "edited": False}
+def _part(kind: str, title: str, text: str, status: str = "review", optional: bool = False) -> dict:
+    """optional: left out of the email unless confirmed, and never blocks the client from being ready."""
+    return {"id": secrets.token_hex(4), "kind": kind, "title": title, "text": text, "status": status, "edited": False, "optional": optional}
 
 
 def build(greeting: str, sections: list[dict], ctx: dict, structured: bool, trend: str, sources: list[str], category: str, sender: str) -> list[dict]:
@@ -37,6 +38,8 @@ def build(greeting: str, sections: list[dict], ctx: dict, structured: bool, tren
     notes = [f"Current 2 weeks: {ctx['this_week']}" if ctx.get("this_week") else "", f"Next 2 weeks: {ctx['next_week']}" if ctx.get("next_week") else ""]
     if not structured and any(notes):                    # a style with sections already covers the work in its sections
         parts.append(_part("notes", "SEO team notes", "\n".join(n for n in notes if n)))
+    if ctx.get("trends"):                                # the SEO sheet's Trends/News cell: always offered for review, whatever the style
+        parts.append(_part("trends", "SEO trends / news", ctx["trends"], optional=True))
     if trend:
         parts.append(_part("trend", f"Industry trend — {category}" if category else "Industry trend", "\n".join([trend] + [f"Source: {u}" for u in sources])))
     parts.append(_part("signoff", "", f"Best regards,\n{sender}\nSaigon Digital", "confirmed"))
@@ -45,7 +48,7 @@ def build(greeting: str, sections: list[dict], ctx: dict, structured: bool, tren
 
 def compose_body(parts: list[dict]) -> str:
     """The email as text, without the deleted parts (the same layout the single text box used to hold)."""
-    kept = [p for p in parts if p["status"] != "deleted"]
+    kept = [p for p in parts if p["status"] != "deleted" and (not p.get("optional") or p["status"] == "confirmed")]
     return "\n\n".join((f"{p['title']}\n{p['text']}" if p["title"] else p["text"]) for p in kept if p["text"] or p["title"])
 
 
@@ -94,9 +97,12 @@ def confirm_all(parts: list[dict], ctx: dict) -> tuple[list[str], list[str]]:
 
 
 def reviewed_count(parts: list[dict]) -> tuple[int, int]:
-    return sum(p["status"] != "review" for p in parts), len(parts)
+    """(reviewed, total) over the parts that must be reviewed; optional parts are not counted."""
+    required = [p for p in parts if not p.get("optional")]
+    return sum(p["status"] != "review" for p in required), len(required)
 
 
 def ready(parts: list[dict]) -> bool:
     """Every part confirmed or deleted, and something left to send."""
-    return bool(parts) and all(p["status"] != "review" for p in parts) and any(p["status"] == "confirmed" for p in parts)
+    required = [p for p in parts if not p.get("optional")]
+    return bool(parts) and all(p["status"] != "review" for p in required) and any(p["status"] == "confirmed" for p in required)

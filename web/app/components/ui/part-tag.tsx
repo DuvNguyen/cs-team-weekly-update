@@ -5,6 +5,7 @@ const TAGS: Record<Tag, { tone: "neutral" | "sky" | "green" | "amber" | "blue"; 
   template: { tone: "neutral", label: "Template", hint: "Standard greeting or sign-off" },
   gsc: { tone: "sky", label: "Search Console", hint: "Its numbers match the Search Console data" },
   notes: { tone: "green", label: "SEO team notes", hint: "Taken from the SEO team's notes in the sheet" },
+  sheet: { tone: "green", label: "SEO sheet: Trends/News", hint: "Copied from the SEO team's sheet, column Trends/News" },
   ai: { tone: "amber", label: "AI wording", hint: "Sentences written by Gemini" },
   trend: { tone: "neutral", label: "Google Search via Gemini", hint: "Industry trend found by Gemini with Google Search" },
   you: { tone: "blue", label: "Edited by you", hint: "You changed this part" },

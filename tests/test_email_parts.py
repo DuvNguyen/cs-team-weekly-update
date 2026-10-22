@@ -130,3 +130,48 @@ def test_confirm_all_with_nothing_to_confirm_is_harmless():
     parts = build([{"title": "A", "text": "x"}])
     ep.confirm_all(parts, CTX)
     assert ep.confirm_all(parts, CTX) == ([], [])
+
+
+TRENDS_CTX = {**CTX, "trends": "Competitor launched a new school.\nMOET directive (18 Oct)."}
+
+
+def build_t(sections=None, **kw):
+    return ep.build("Hi Sarah,", sections or [{"title": "A", "text": "x"}], TRENDS_CTX, structured=kw.get("structured", True),
+                    trend=kw.get("trend", ""), sources=[], category="Furniture", sender="Mimi Pham")
+
+
+def test_the_sheets_trends_become_an_optional_part_after_the_sections():
+    parts = build_t(trend="Local search is shifting.")
+    assert [p["kind"] for p in parts] == ["greeting", "section", "trends", "trend", "signoff"]
+    t = parts[2]
+    assert t["title"] == "SEO trends / news" and t["text"].startswith("Competitor launched") and t["optional"] is True and t["status"] == "review"
+    assert not any(p["optional"] for p in parts if p["kind"] != "trends")
+
+
+def test_no_trends_in_the_sheet_means_no_part():
+    parts = ep.build("Hi", [{"title": "A", "text": "x"}], CTX, structured=True, trend="", sources=[], category="", sender="M")
+    assert "trends" not in [p["kind"] for p in parts]
+
+
+def test_the_trends_reach_the_email_only_once_confirmed():
+    parts = build_t()
+    assert "Competitor launched" not in ep.compose_body(parts)
+    ep.update_part(parts, parts[2]["id"], {"status": "confirmed"}, TRENDS_CTX)
+    body = ep.compose_body(parts)
+    assert "SEO trends / news\nCompetitor launched a new school." in body and body.index("A\nx") < body.index("SEO trends / news")
+    ep.update_part(parts, parts[2]["id"], {"status": "deleted"}, TRENDS_CTX)
+    assert "Competitor launched" not in ep.compose_body(parts)
+
+
+def test_an_unconfirmed_optional_part_does_not_block_the_client_or_the_count():
+    parts = build_t()
+    ep.update_part(parts, parts[1]["id"], {"status": "confirmed"}, TRENDS_CTX)
+    assert ep.ready(parts) and ep.reviewed_count(parts) == (3, 3)           # greeting, section, sign-off; trends not counted
+    ep.update_part(parts, parts[2]["id"], {"text": "Edited trend."}, TRENDS_CTX)
+    assert ep.ready(parts) and "Edited trend." not in ep.compose_body(parts)    # edited, back in review: still left out
+
+
+def test_confirm_all_also_confirms_the_trends_part():
+    parts = build_t()
+    done, skipped = ep.confirm_all(parts, TRENDS_CTX)
+    assert parts[2]["id"] in done and "SEO trends / news" in ep.compose_body(parts)
