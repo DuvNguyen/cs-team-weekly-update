@@ -5,6 +5,7 @@ import { useState } from "react";
 import { api, type ClientConfig } from "../../lib/api";
 import { Alert } from "../ui/feedback";
 import { Card } from "../ui/card";
+import { TagInput, joinTags, splitTags } from "../ui/tag-input";
 import { useApp } from "../shell/app-shell";
 
 const greeting = (c: ClientConfig) => `Hi ${c.contact?.trim() || `${c.name} team`},`;
@@ -17,6 +18,7 @@ export function ClientsEditor() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
+  const known = [...new Set(rows.flatMap((r) => splitTags(r.category)))].sort((a, b) => a.localeCompare(b));   // every tag already in use, offered as suggestions
   const dirty = JSON.stringify(rows) !== JSON.stringify(saved);
 
   const set = (i: number, patch: Partial<ClientConfig>) => (setDone(false), setRows((all) => all.map((r, n) => (n === i ? { ...r, ...patch } : r))));
@@ -56,7 +58,7 @@ export function ClientsEditor() {
         <ul className="divide-y divide-grey-100">
           {rows.map((c, i) => (
             <li key={c.name} className="grid gap-4 py-5 lg:grid-cols-12">
-              <div className="lg:col-span-3">
+              <div className="lg:col-span-2">
                 <p className="font-display text-lg font-semibold text-indigo">{c.name}</p>
                 <p className="text-xs text-grey-600" title="The name is how the SEO sheet notes are matched, so it is changed in config.json">Name is fixed here</p>
               </div>
@@ -64,11 +66,10 @@ export function ClientsEditor() {
                 <label className="label" htmlFor={`site-${i}`}>Website (Search Console)</label>
                 <input id={`site-${i}`} className="field" value={c.property} onChange={(e) => set(i, { property: e.target.value })} />
               </div>
-              <div className="lg:col-span-2">
-                <label className="label" htmlFor={`cat-${i}`}>Category</label>
-                <input id={`cat-${i}`} className="field" value={c.category} onChange={(e) => set(i, { category: e.target.value })} />
-              </div>
               <div className="lg:col-span-4">
+                <TagInput label="Category" values={splitTags(c.category)} onChange={(tags) => set(i, { category: joinTags(tags) })} suggestions={known} placeholder="Add a category…" />
+              </div>
+              <div className="lg:col-span-3">
                 <label className="label" htmlFor={`greet-${i}`}>Greeting name</label>
                 <input id={`greet-${i}`} className="field" value={c.contact ?? ""} maxLength={60} placeholder="e.g. Ben" onChange={(e) => set(i, { contact: e.target.value })} />
                 <p className="mt-1 text-sm text-grey-600">Email starts: <strong className="text-ink">{greeting(c)}</strong></p>
