@@ -114,6 +114,13 @@ function PartCard({ part, number, total, busy, onPatch, onMove, onMoveTo }: {
             </div>
           )}
 
+          {!editing && part.source && part.source.trim() !== part.text.trim() && (
+            <details className="text-sm text-grey-600">
+              <summary className="cursor-pointer font-semibold text-brand">Show the sheet&rsquo;s own text</summary>
+              <p className="mt-2 whitespace-pre-wrap rounded bg-grey-100 p-3 leading-relaxed">{part.source}</p>
+            </details>
+          )}
+
           {flagged && (
             <Alert>
               {check.flags[0]}

@@ -26,7 +26,21 @@ def compose_body(summary: str, this_week: str, next_week: str,
             parts.append(f"Source: {url}")
     return "\n".join(parts)
 
-def build_prompt(name: str, category: str, series: dict, prev: dict, this_week: str, next_week: str) -> str:
+def build_trends_prompt(name: str, text: str) -> str:
+    """The SEO sheet's Trends/News cell, told as the situation in friendly words. Same facts, nothing added."""
+    return "\n".join([
+        voice.VOICE,
+        f'Below is what the SEO team wrote in their report about the client "{name}". Rewrite it for the client\'s email, '
+        "so it reads as a person telling them what is happening, in warm plain words, not as dry report notes.",
+        "Keep every fact: names, dates, numbers, links and each action item, in the same order. Do not add facts, causes, advice or Google updates, and do not drop any. "
+        "Do not shorten it into a summary. Plain text only, no markdown symbols; start a list item with '- ' on its own line. "
+        "Start straight with the news: no opening line such as \"I hope you're well\" (the email already has its greeting), and no sign-off.",
+        "",
+        text,
+    ])
+
+
+def build_prompt(name: str, category: str, series: dict, prev: dict, this_week: str, next_week: str, trends: str = "") -> str:
     structure = voice.STRUCTURE
     t, p = series["totals"], prev["totals"]
     lines = [
@@ -60,10 +74,14 @@ def build_prompt(name: str, category: str, series: dict, prev: dict, this_week: 
             lines.append(f"Plan for the next 2 weeks:\n{next_week}")
         lines += [
             "",
-            "Use the notes for the work and plan sections. Do not invent numbers, tasks, causes or Google updates. "
+            "Use the notes for the work and plan sections. Tell the client where things stand right now, as the notes describe it, "
+            "in warm plain words a non-technical reader understands, not as a dry list of task names. "
+            "Do not shorten the notes into a summary: every item and its detail (links, names, numbers) stays, none is merged or dropped. "
+            "Do not invent numbers, tasks, causes or Google updates. "
             "Keep any URL from the notes right after the item it belongs to."
             if structure else
-            "Weave in the work done in these 2 weeks, then end with one sentence on what's planned for the next 2 weeks. "
+            "Weave in the work done in these 2 weeks and where things stand, as the notes describe it, in warm plain words, "
+            "then end with one sentence on what's planned for the next 2 weeks. "
             "Ignore any URLs in the notes. Do not invent numbers or tasks.",
         ]
     else:
@@ -72,6 +90,15 @@ def build_prompt(name: str, category: str, series: dict, prev: dict, this_week: 
             "There are no task notes for this client this period, so cover the search performance only. "
             "Do not mention that notes or updates are missing, and do not invent any work.",
         ]
+    if trends:
+        lines += [
+            "",
+            f"What the SEO team reports about this client's industry and search news right now:\n{trends}",
+            "Where the email gives industry, Google or market context, tell this situation in warm plain words, as the report states it. "
+            "Do not add facts, dates, causes or Google updates that are not in it.",
+        ]
+    else:
+        lines += ["", "No industry or Google news was reported for this client, so do not mention Google updates, competitors or industry changes."]
     return "\n".join(lines)
 
 def summarize(gemini, name: str, category: str, series: dict, prev: dict, this_week: str, next_week: str) -> str:

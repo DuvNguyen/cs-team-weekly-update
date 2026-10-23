@@ -13,6 +13,7 @@ export type Part = {
   status: "review" | "confirmed" | "deleted";
   edited: boolean;
   optional?: boolean;   // left out of the email unless confirmed
+  source?: string;      // the SEO sheet's own text, when this part is a rewording of it
   check: PartCheck;
 };
 
@@ -64,6 +65,7 @@ export type ClientConfig = { name: string; property: string; category: string; c
 export type Config = {
   clients: ClientConfig[];
   seo_sheet_tab: string;
+  seo_sheet_url: string;
   demo: boolean;
   period: { start: string; end: string };
 };

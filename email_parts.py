@@ -40,7 +40,7 @@ def build(greeting: str, sections: list[dict], ctx: dict, structured: bool, tren
     if not structured and any(notes):                    # a style with sections already covers the work in its sections
         parts.append(_part("notes", "SEO team notes", "\n".join(n for n in notes if n)))
     if ctx.get("trends"):                                # the SEO sheet's Trends/News cell: always offered for review, whatever the style
-        parts.append(_part("trends", "SEO trends / news", ctx["trends"], optional=True))
+        parts.append({**_part("trends", "SEO trends / news", ctx["trends"], optional=True), "source": ctx.get("trends_raw", "")})   # source: the cell as written
     if trend:
         parts.append(_part("trend", f"Industry trend — {category}" if category else "Industry trend", "\n".join([trend] + [f"Source: {u}" for u in sources])))
     parts.append(_part("signoff", "", f"Best regards,\n{sender}\nSaigon Digital", "confirmed"))

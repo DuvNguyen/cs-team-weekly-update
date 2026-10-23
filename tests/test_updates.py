@@ -47,3 +47,11 @@ def test_the_status_says_why_there_are_no_trends():
     assert updates.trends_status(ROWS, "Nobody") == ("", "no_row")
     assert updates.trends_status([["Project", "October"], ["ABCIS", "x"]], "ABCIS") == ("", "no_column")
     assert updates.trends_status([], "ABCIS") == ("", "no_column")
+
+
+def test_a_task_cell_that_mentions_trends_is_not_taken_for_the_header():
+    """Old tabs have no Trends column, but a client's task text can say "trends" in the first rows."""
+    rows = [["Project", "Current 2 Weeks", "Next 2 Weeks"], [],
+            ["ABCIS", "14/9-18/9 Monitor trends and website performance and write the monthly report for the school", "Monthly report"]]
+    assert updates.trends_column(rows) is None
+    assert updates.trends_status(rows, "ABCIS") == ("", "no_column")

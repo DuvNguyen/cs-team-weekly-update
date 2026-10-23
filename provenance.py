@@ -96,8 +96,17 @@ def check_part(part: dict, ctx: dict) -> dict:
         out["tags"] = ["notes"]
     elif kind == "trend":
         out["tags"] = ["trend"]
-    elif kind == "trends":                      # the SEO sheet's "Trends/News" cell, shown as written
+    elif kind == "trends":                      # the SEO sheet's "Trends/News" cell: as written, or reworded from it ("source")
+        source = part.get("source") or ""
         out["tags"] = ["sheet"]
+        if source.strip() and text.strip() != source.strip():
+            out["tags"].append("ai")
+            known = [_value(t)[0] for t in numbers_in(source)]
+            for token in numbers_in(text):
+                value, decimals = _value(token)
+                ok = any(round(k, decimals) == value for k in known)
+                out["numbers"]["matched" if ok else "unmatched"].append(token)
+            out["flags"] += [f"{t} is not in the SEO sheet's trends/news." for t in out["numbers"]["unmatched"]]
     else:
         allowed, notes = allowed_numbers(ctx), f"{ctx.get('this_week', '')}\n{ctx.get('next_week', '')}"
         for token in numbers_in(text):

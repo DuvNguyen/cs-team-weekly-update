@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Link, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { api, type Config, type Job, type Voice } from "../../lib/api";
 import { addDays } from "../../lib/period";
@@ -21,6 +21,7 @@ export function Setup({ config, hasReport, onBack, onStart }: { config: Config; 
   const [styleId, setStyleId] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   // Search Console's newest day with data (the same end its own "7 days" uses). Unknown until it loads.
   const [latest, setLatest] = useState<string | null>(null);
@@ -85,6 +86,13 @@ export function Setup({ config, hasReport, onBack, onStart }: { config: Config; 
     [tabs, newTabs],
   );
   const valid = start && end && start <= end && picked.length > 0;
+
+  function copySheetLink() {
+    navigator.clipboard.writeText(config.seo_sheet_url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    }).catch(() => {});
+  }
 
   async function go() {
     setBusy(true);
@@ -200,6 +208,12 @@ export function Setup({ config, hasReport, onBack, onStart }: { config: Config; 
                   placeholder="Search tabs…"
                 />
                 <p className="mt-2 text-sm text-grey-600">Click the box and choose this period&rsquo;s tab. Type to search.</p>
+                {config.seo_sheet_url && (
+                  <button type="button" onClick={copySheetLink} className="btn btn-outline mt-3 !px-3 !py-1.5 text-sm">
+                    {copied ? <Check size={14} /> : <Link size={14} />}
+                    {copied ? "Link copied" : "Copy sheet link"}
+                  </button>
+                )}
                 {staleTab && !tab && (
                   <div className="mt-3"><Alert>The saved tab &ldquo;{staleTab}&rdquo; is no longer in the sheet. Pick this period&rsquo;s tab.</Alert></div>
                 )}

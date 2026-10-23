@@ -34,6 +34,7 @@ def public_config() -> dict:
     return {
         "clients": c["clients"],
         "seo_sheet_tab": c.get("seo_sheet_tab", ""),
+        "seo_sheet_url": f"https://docs.google.com/spreadsheets/d/{c['seo_sheet_id']}/edit" if c.get("seo_sheet_id") and not DEMO else "",
         "include_industry_trends": c.get("include_industry_trends", False),
         "demo": DEMO,
     }
@@ -159,12 +160,12 @@ def _demo_series(seed: int, start: datetime.date, end: datetime.date) -> dict:
 
 
 def _prompt(style: dict, name: str, category: str, series: dict, prev: dict, this_week: str, next_week: str,
-            start: datetime.date, end: datetime.date) -> str:
+            start: datetime.date, end: datetime.date, trends: str = "") -> str:
     """report.build_prompt, but written in the chosen style (stays unchanged, reads voice.VOICE/EXAMPLES/STRUCTURE)."""
     with _voice_lock:
         voice.VOICE, voice.EXAMPLES = voice_store.render(style)
         voice.STRUCTURE = voice_store.render_structure(style, start, end)
-        return report.build_prompt(name, category, series, prev, this_week, next_week)
+        return report.build_prompt(name, category, series, prev, this_week, next_week, trends)
 
 
 def _generate(gemini, prompt: str, as_json: bool = False) -> str:
@@ -173,6 +174,20 @@ def _generate(gemini, prompt: str, as_json: bool = False) -> str:
         config = types.GenerateContentConfig(response_mime_type="application/json")
         return (gemini.models.generate_content(model=report.MODEL, contents=prompt, config=config).text or "").strip()
     return (gemini.models.generate_content(model=report.MODEL, contents=prompt).text or "").strip()
+
+
+def _natural_trends(gemini, style: dict, name: str, text: str) -> str:
+    """The sheet's Trends/News cell in friendly words. Any failure, or demo mode, keeps the cell as written."""
+    if DEMO or not text.strip():
+        return text
+    try:
+        with _voice_lock:
+            voice.VOICE, voice.EXAMPLES = voice_store.render(style)
+            prompt = report.build_trends_prompt(name, text)
+        with _api_lock:
+            return (_generate(gemini, prompt) or "").strip() or text
+    except Exception:
+        return text
 
 
 def new_job(tab: str, client_names: list, start: str, end: str, email: str | None = None, style_id: str | None = None) -> dict:
@@ -276,12 +291,13 @@ def generate_client(job: dict, c: dict, config: dict, svc) -> None:
         os.makedirs(OUT_DIR, exist_ok=True)
         chart.render(series, f"{c['name']} — {c['property']}", chart_path(job, c["name"]))
         if summary is None:
-            prompt = _prompt(style, c["name"], c["category"], series, prev, this_week, next_week, start, end)
+            prompt = _prompt(style, c["name"], c["category"], series, prev, this_week, next_week, start, end, sheet_trends)
             with _api_lock:
                 summary = _generate(svc["gemini"], prompt, as_json=voice_store.has_structure(style))
         trend, sources = job["_trends"].get(c["category"], ("", []))
-        ctx = job.setdefault("_ctx", {})[c["name"]] = dict(series=series, prev=prev, this_week=this_week,
-                                                            next_week=next_week, trend=trend, sources=sources, trends=sheet_trends, trends_status=trends_status)
+        natural_trends = sheet_trends if DEMO or trends_status != "found" else _natural_trends(svc["gemini"], style, c["name"], sheet_trends)
+        ctx = job.setdefault("_ctx", {})[c["name"]] = dict(series=series, prev=prev, this_week=this_week, next_week=next_week, trend=trend, sources=sources,
+                                                            trends=natural_trends, trends_raw=sheet_trends, trends_status=trends_status)
         _assemble(config, cfg, c, summary, ctx)
         c["totals"], c["prev_totals"] = series["totals"], prev["totals"]
         c["has_chart"], c["status"] = True, "ok"

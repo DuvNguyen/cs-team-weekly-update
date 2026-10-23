@@ -19,10 +19,11 @@ def fetch_rows(service, sheet_id: str, rng: str) -> list:
 
 
 def trends_column(rows: list) -> int | None:
-    """Index of the column whose header (in the first rows) mentions "trend", e.g. "SEO Trends/NEws"."""
+    """Index of the column whose header (in the first rows) mentions "trend", e.g. "SEO Trends/NEws".
+    A header is short: a long cell that says "trends" is a client's task text, not a header."""
     for row in rows[:3]:
         for i, cell in enumerate(row):
-            if re.search(r"trend", str(cell), re.I):
+            if len(str(cell).strip()) <= 40 and re.search(r"trend", str(cell), re.I):
                 return i
     return None
 
